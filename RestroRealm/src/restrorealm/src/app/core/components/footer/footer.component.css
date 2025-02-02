@@ -1,0 +1,97 @@
+.footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px; /* Increased padding for better spacing */
+    background-color: #343a40;
+    color: white;
+    font-family: Arial, sans-serif; /* Removed quotes for better syntax */
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15); /* Enhanced shadow */
+  }
+  
+  .footer-content {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 1200px;
+    margin-bottom: 30px;
+    flex-wrap: wrap; /* Better mobile responsiveness */
+    gap: 20px; /* Spacing between wrapped items */
+  }
+  
+  .footer-left {
+    display: flex;
+    flex-direction: column;
+    min-width: 200px; /* Minimum width for better layout */
+  }
+  
+  .footer-left a {
+    color: white;
+    text-decoration: none;
+    margin: 8px 0; /* Increased spacing between links */
+    font-size: 16px;
+    transition: all 0.3s ease; /* Smoother transition */
+    padding: 5px 0; /* Larger click area */
+  }
+  
+  .footer-left a:hover {
+    color: #0073e6;
+    transform: translateX(5px); /* Subtle animation on hover */
+  }
+  
+  .footer-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    min-width: 200px; /* Minimum width for better layout */
+  }
+  
+  .footer-right .address {
+    font-size: 16px;
+    line-height: 1.6; /* Improved line height for readability */
+    text-align: right; /* Better alignment */
+  }
+  
+  .footer .social-icons {
+    display: flex;
+    gap: 15px; /* Increased spacing between icons */
+    margin-top: 15px;
+  }
+  
+  .footer .social-icons a {
+    font-size: 24px; /* Larger icons */
+    transition: all 0.3s ease;
+    padding: 5px; /* Larger click area */
+  }
+  
+  .footer .social-icons a:hover {
+    color: #0073e6;
+    transform: scale(1.2); /* Scale up on hover */
+  }
+  
+  .footer-bottom {
+    text-align: center;
+    font-size: 14px;
+    margin-top: 30px;
+    width: 100%;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1); /* Subtle separator */
+  }
+  
+  /* Media query for mobile responsiveness */
+  @media (max-width: 768px) {
+    .footer-content {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+  
+    .footer-right {
+      align-items: center;
+    }
+  
+    .footer-right .address {
+      text-align: center;
+    }
+  }
+  

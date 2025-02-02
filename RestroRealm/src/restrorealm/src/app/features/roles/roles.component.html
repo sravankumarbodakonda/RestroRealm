@@ -1,0 +1,133 @@
+<div class="menu-container">
+    <!-- Header Section -->
+    <header class="menu-header">
+        <h1 class="menu-title">Role Management</h1>
+        <div class="menu-controls">
+            <div class="search-container">
+                <span class="search-icon fas fa-search"></span>
+                <input 
+                    type="text" 
+                    class="search-input"
+                    [(ngModel)]="searchTerm" 
+                    (input)="onSearch()" 
+                    placeholder="Search Roles..."
+                    aria-label="Search Roles"
+                />
+            </div>
+            <div class="controls-group">
+                <button 
+                    *ngIf="createRole"
+                    class="mdc-button mdc-button--raised" 
+                    (click)="openCreateDialog()">
+                    <span class="mdc-button__label">
+                        <i class="fas fa-plus"></i> Add Role
+                    </span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main [class]="'item-container ' + viewMode">
+        <article 
+            *ngFor="let role of filteredRoles"
+            class="menu-item"
+            [class.card-view]="viewMode === 'card'"
+            [class.list-view]="viewMode === 'list'">
+            
+            <!-- <figure class="item-media">
+                <img 
+                    [src]="category.imageUrl" 
+                    [alt]="category.name"
+                    class="item-image"
+                    loading="lazy"
+                />
+            </figure> -->
+            
+            <div class="item-content">
+                <header class="item-header">
+                    <h2 class="item-title">{{ role.name }}</h2>
+                </header>
+                
+                <p class="item-description">{{ role.description }}</p>
+                
+                <div class="item-metadata">
+                    <div class="action-buttons">
+                        <button 
+                            *ngIf="readSingleRole"
+                            class="icon-button"
+                            (click)="viewDetails(role)"
+                            aria-label="View details">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button 
+                            *ngIf="editRole"
+                            class="icon-button"
+                            (click)="openEditDialog(role)"
+                            aria-label="Edit item">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button 
+                            *ngIf="deleteSingleRole"
+                            class="icon-button danger"
+                            (click)="deleteRole(role)"
+                            aria-label="Delete item">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </article>
+    </main>
+
+    <!-- Empty State -->
+    <div *ngIf="filteredRoles.length === 0" class="empty-state">
+        <i class="material-icons fas fa-pizza-slice"></i>
+        <h3>No Roles found</h3>
+        <p>Try adjusting your search or filters</p>
+    </div>
+
+    <!-- Dialog -->
+    <div class="dialog-backdrop" *ngIf="showDialog">
+        <div class="dialog-card">
+            <h2 class="dialog-title">{{ editingRole ? 'Edit' : 'Create' }} Role</h2>
+            
+            <form [formGroup]="roleForm" (ngSubmit)="onSubmit()" class="dialog-form">
+                <div class="form-field">
+                    <label>Role Name</label>
+                    <input 
+                        type="text" 
+                        formControlName="name"
+                        class="mdc-text-field__input"
+                        required
+                    />
+                </div>
+
+                <div class="form-field">
+                    <label>Description</label>
+                    <textarea 
+                        formControlName="description"
+                        class="mdc-text-field__input"
+                        rows="3"
+                    ></textarea>
+                </div>
+
+                <div class="dialog-actions">
+                    <button 
+                        type="button" 
+                        class="mdc-button"
+                        (click)="closeDialog()">
+                        Cancel
+                    </button>
+                    <button 
+                        type="submit" 
+                        class="mdc-button mdc-button--raised"
+                        [disabled]="roleForm.invalid || loading">
+                        {{ loading ? 'Saving...' : 'Save Changes' }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <app-toaster *ngIf="toast" [message]="toast.message" [type]="toast.type"></app-toaster>
+</div>

@@ -1,0 +1,174 @@
+<div class="menu-container">
+    <!-- Header Section -->
+    <header class="menu-header">
+        <h1 class="menu-title">Menu Addon</h1>
+        <div class="menu-controls">
+            <div class="search-container">
+                <span class="search-icon fas fa-search"></span>
+                <input 
+                    type="text" 
+                    class="search-input"
+                    [(ngModel)]="searchTerm" 
+                    (input)="onSearch()" 
+                    placeholder="Search Menu Addons..."
+                    aria-label="Search Menu Addons"
+                />
+            </div>
+            <div class="controls-group">
+                <button 
+                    *ngIf="createMenuAddon"
+                    class="mdc-button mdc-button--raised" 
+                    (click)="openCreateDialog()">
+                    <span class="mdc-button__label">
+                        <i class="fas fa-plus"></i> Add Menu Addon
+                    </span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main [class]="'item-container ' + viewMode">
+        <article 
+            *ngFor="let menuAddon of filteredMenuAddons"
+            class="menu-item"
+            [class.card-view]="viewMode === 'card'"
+            [class.list-view]="viewMode === 'list'">
+            
+            <!-- <figure class="item-media">
+                <img 
+                    [src]="category.imageUrl" 
+                    [alt]="category.name"
+                    class="item-image"
+                    loading="lazy"
+                />
+            </figure> -->
+            
+            <div class="item-content">
+                <header class="item-header">
+                    <h2 class="item-title">{{ menuAddon.addOnName }}</h2>
+                </header>
+                
+                <p class="item-description">{{ menuAddon.description }}</p>
+                
+                <div class="item-metadata">
+                    <div class="action-buttons">
+                        <button 
+                            *ngIf="readSingleMenuAddon"
+                            class="icon-button"
+                            (click)="viewDetails(menuAddon)"
+                            aria-label="View details">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button 
+                            *ngIf="editMenuAddon"
+                            class="icon-button"
+                            (click)="openEditDialog(menuAddon)"
+                            aria-label="Edit item">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button 
+                            *ngIf="deleteSingleMenuAddon"
+                            class="icon-button danger"
+                            (click)="deleteMenuAddon(menuAddon)"
+                            aria-label="Delete item">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </article>
+    </main>
+
+    <!-- Empty State -->
+    <div *ngIf="filteredMenuAddons.length === 0" class="empty-state">
+        <i class="material-icons fas fa-pizza-slice"></i>
+        <h3>No Menu Addons found</h3>
+        <p>Try adjusting your search or filters</p>
+    </div>
+
+    <!-- Dialog -->
+    <div class="dialog-backdrop" *ngIf="showDialog">
+        <div class="dialog-card">
+            <h2 class="dialog-title">{{ editingMenuAddon ? 'Edit' : 'Create' }} Menu Addon</h2>
+            
+            <form [formGroup]="menuAddonForm" (ngSubmit)="onSubmit()" class="dialog-form">
+                <div class="form-field">
+                    <label>Menu Addon Name</label>
+                    <input 
+                        type="text" 
+                        formControlName="addOnName"
+                        class="mdc-text-field__input"
+                        required
+                    />
+                </div>
+
+                <div class="form-field">
+                    <label>Description</label>
+                    <textarea 
+                        formControlName="description"
+                        class="mdc-text-field__input"
+                        rows="3"
+                    ></textarea>
+                </div>
+
+                <!-- <div class="form-row"> -->
+                    <div class="form-field">
+                        <label>Price</label>
+                        <input 
+                            type="number" 
+                            formControlName="addOnPrice"
+                            class="mdc-text-field__input"
+                            step="0.01"
+                            min="0"
+                            required
+                        />
+                    </div>
+                    
+                    <div class="form-field">
+                        <label>Is Suggested?</label>
+                        <select 
+                            formControlName="isSuggested"
+                            class="mdc-select"
+                            required>
+                            <option value="true">
+                                Yes
+                            </option>
+                            <option selected value="false">
+                                No
+                            </option>
+                        </select>
+                    </div>
+                    
+                    <!-- <div class="form-field">
+                        <label>Category</label>
+                        <select 
+                            formControlName="categoryId"
+                            class="mdc-select"
+                            required>
+                            <option *ngFor="let menui of menuitems" [value]=cat.id>
+                                {{ cat.name }}
+                            </option>
+                        </select>
+                    </div> -->
+                <!-- </div> -->
+
+                <div class="dialog-actions">
+                    <button 
+                        type="button" 
+                        class="mdc-button"
+                        (click)="closeDialog()">
+                        Cancel
+                    </button>
+                    <button 
+                        type="submit" 
+                        class="mdc-button mdc-button--raised"
+                        [disabled]="menuAddonForm.invalid || loading">
+                        {{ loading ? 'Saving...' : 'Save Changes' }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <app-toaster *ngIf="toast" [message]="toast.message" [type]="toast.type"></app-toaster>
+</div>

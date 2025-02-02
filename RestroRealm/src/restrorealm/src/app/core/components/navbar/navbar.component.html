@@ -1,0 +1,65 @@
+<nav class="navbar">
+    <nav class="navbar">
+        <div class="navbar-left">
+            <button *ngIf="isLoggedIn" class="hamburger-menu" (click)="toggleSidebar()">
+                <span class="hamburger-icon">☰</span>
+            </button>
+            <h1 class="app-name">RestroRealm</h1>
+        </div>
+    </nav>
+    
+    <div *ngIf="isLoggedIn">
+        <div class="sidebar-overlay" *ngIf="isSidebarOpen" (click)="closeSidebar()"></div>
+        <aside class="sidebar" [class.expanded]="isSidebarOpen">
+            <app-sidebar></app-sidebar>
+        </aside>
+    </div>
+    <div class="navbar-center">
+        <ul class="nav-links">
+            <li><a routerLink="/">Home</a></li>
+            <li><a routerLink="/about">About Us</a></li>
+            <li><a routerLink="/menu">Menu</a></li>
+            <li><a routerLink="/contact">Contact</a></li>
+            <li><a routerLink="/services">Services</a></li>
+        </ul>
+    </div>
+    <div class="navbar-right">
+        <div *ngIf="isLoggedIn; else loginButtons" class="profile-container">
+            <div class="user-profile" (click)="toggleProfileDropdown()">
+                <!-- <img 
+                    [src]="user?.profilePicture" 
+                    alt="Profile" 
+                    class="profile-pic" 
+                /> -->
+                <span class="user-name">{{ user?.name }}</span>
+            </div>
+            <div *ngIf="showProfileDropdown" class="profile-dropdown">
+                <div class="dropdown-header">
+                    <!-- <img 
+                        [src]="user?.profilePicture" 
+                        alt="Profile" 
+                        class="large-profile-pic" 
+                    /> -->
+                    <div class="user-info">
+                        <h3>{{ user?.name }}</h3>
+                        <p>{{ user?.role }}</p>
+                    </div>
+                </div>
+                <div class="dropdown-actions">
+                    <button class="view-profile" (click)="viewProfile()">View Profile</button>
+                    <button class="logout" (click)="onLogout()">Logout</button>
+                </div>
+            </div>
+        </div>
+        <ng-template #loginButtons>
+            <div class="auth-buttons">
+                <button class="login-button" (click)="navigateToLogin()">Login</button>
+                <button class="register-button" (click)="navigateToRegister()">Register</button>
+            </div>
+        </ng-template>
+    </div>
+</nav>
+
+<div *ngIf="isLoggedIn" class="sidebar" [class.open]="isSidebarOpen">
+    <app-sidebar></app-sidebar>
+</div>

@@ -1,0 +1,192 @@
+<div class="menu-container">
+    <!-- Header Section -->
+    <header class="menu-header">
+        <h1 class="menu-title">Category Management</h1>
+        <div class="menu-controls">
+            <div class="search-container">
+                <span class="search-icon fas fa-search"></span>
+                <input 
+                    type="text" 
+                    class="search-input"
+                    [(ngModel)]="searchTerm" 
+                    (input)="onSearch()" 
+                    placeholder="Search Categories..."
+                    aria-label="Search Categories"
+                />
+            </div>
+            <div class="controls-group">
+                <button 
+                    *ngIf="createCategory"
+                    class="mdc-button mdc-button--raised" 
+                    (click)="openCreateDialog()">
+                    <span class="mdc-button__label">
+                        <i class="fas fa-plus"></i> Add Category
+                    </span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main [class]="'item-container ' + viewMode">
+        <article 
+            *ngFor="let category of filteredCategories"
+            class="menu-item"
+            [class.card-view]="viewMode === 'card'"
+            [class.list-view]="viewMode === 'list'">
+            
+            <figure class="item-media">
+                <img 
+                    [src]="apiUrl + category.imagePath" 
+                    [alt]="category.name"
+                    class="item-image"
+                    loading="lazy"
+                />
+            </figure>
+            
+            <div class="item-content">
+                <header class="item-header">
+                    <h2 class="item-title">{{ category.name }}</h2>
+                </header>
+                
+                <p class="item-description">{{ category.description }}</p>
+                <p class="item-time">
+                    <i class="fas fa-clock"></i>
+                    {{ category.availableStartTime }} - {{ category.availableEndTime }}
+                </p>
+                
+                <div class="item-metadata">
+                    <span class="badge {{ category.ageRestricted ? 'ar' : '' }}">{{ category.ageRestricted ? 'Age Restricted' : 'No Age Restriction' }}</span>
+                    <div class="spacer"></div>
+                    <div class="action-buttons">
+                        <button 
+                            *ngIf="readSingleCategory"
+                            class="icon-button"
+                            (click)="viewDetails(category)"
+                            aria-label="View details">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button 
+                            *ngIf="editCategory"
+                            class="icon-button"
+                            (click)="openEditDialog(category)"
+                            aria-label="Edit item">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button 
+                            *ngIf="deleteSingleCategory"
+                            class="icon-button danger"
+                            (click)="deleteCategory(category)"
+                            aria-label="Delete item">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </article>
+    </main>
+
+    <!-- Empty State -->
+    <div *ngIf="filteredCategories.length === 0" class="empty-state">
+        <i class="material-icons fas fa-pizza-slice"></i>
+        <h3>No Categories found</h3>
+        <p>Try adjusting your search or filters</p>
+    </div>
+
+    <!-- Dialog -->
+    <div class="dialog-backdrop" *ngIf="showDialog">
+        <div class="dialog-card">
+            <h2 class="dialog-title">{{ editingCategory ? 'Edit' : 'Create' }} Category</h2>
+            
+            <form [formGroup]="categoryForm" (ngSubmit)="onSubmit()" class="dialog-form">
+                <div class="form-field">
+                    <label>Name</label>
+                    <input 
+                        type="text" 
+                        formControlName="name"
+                        class="mdc-text-field__input"
+                        required
+                    />
+                </div>
+
+                <div class="form-field">
+                    <label>Description</label>
+                    <textarea 
+                        formControlName="description"
+                        class="mdc-text-field__input"
+                        rows="3"
+                    ></textarea>
+                </div>
+                    
+                <div class="form-field">
+                    <label>Age Restricted</label>
+                    <select 
+                        formControlName="ageRestricted"
+                        class="mdc-select"
+                        required>
+                        <option value="true">
+                            Yes
+                        </option>
+                        <option selected value="false">
+                            No
+                        </option>
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label>Available Start Time</label>
+                    <input 
+                        type="time" 
+                        formControlName="availableStartTime"
+                        class="mdc-text-field__input"
+                        required
+                    />
+                </div>
+
+                <div class="form-field">
+                    <label>Available End Time</label>
+                    <input 
+                        type="time" 
+                        formControlName="availableEndTime"
+                        class="mdc-text-field__input"
+                        required
+                    />
+                </div>
+
+                <div class="form-field">
+                    <label class="file-upload">
+                        <input 
+                            type="file" 
+                            (change)="onImageSelect($event)"
+                            accept="image/*"
+                            hidden
+                        />
+                        <span class="upload-button">
+                            <i class="material-icons fas fa-upload"></i>
+                            {{ categoryForm.get('image')?.value ? 'Change Image' : 'Upload Image' }}
+                        </span>
+                        <span class="file-name" *ngIf="categoryForm.get('image')?.value">
+                            {{ categoryForm.get('image')?.value.name }}
+                        </span>
+                    </label>
+                </div>
+
+                <div class="dialog-actions">
+                    <button 
+                        type="button" 
+                        class="mdc-button"
+                        (click)="closeDialog()">
+                        Cancel
+                    </button>
+                    <button 
+                        type="submit" 
+                        class="mdc-button mdc-button--raised"
+                        [disabled]="categoryForm.invalid || loading">
+                        {{ loading ? 'Saving...' : 'Save Changes' }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <app-toaster *ngIf="toast" [message]="toast.message" [type]="toast.type"></app-toaster>
+</div>

@@ -1,0 +1,24 @@
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 1rem;
+  border-radius: 5px;
+  z-index: 1000;
+}
+.success {
+  background-color: #28a745;
+  color: white;
+}
+.error {
+  background-color: #dc3545;
+  color: white;
+}
+.warning {
+    background-color: #ffc107;
+    color: white;
+}
+.info {
+    background-color: #17a2b8;
+    color: white;
+}

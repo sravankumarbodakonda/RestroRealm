@@ -1,0 +1,50 @@
+<div class="login-container">
+    <div class="login-card">
+      <h1 class="login-title">Sign In</h1>
+      <form [formGroup]="loginForm" (ngSubmit)="handleLogin()" class="login-form">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input
+            id="email"
+            formControlName="email"
+            type="email"
+            required
+            class="form-input"
+          />
+          <div *ngIf="loginForm.get('email')?.invalid && loginForm.get('email')?.touched" class="error">
+            Email is required and must be valid.
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input
+            id="password"
+            formControlName="password"
+            type="password"
+            required
+            class="form-input"
+          />
+          <div *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched" class="error">
+            Password is required.
+          </div>
+        </div>
+        <button
+          type="submit"
+          [disabled]="loading || loginForm.invalid"
+          class="login-button"
+          [class.loading]="loading"
+        >
+          {{ loading ? 'Signing in...' : 'Sign In' }}
+        </button>
+      </form>
+      <div class="login-footer">
+        <a routerLink="/forgot-password" class="forgot-password">Forgot Password?</a>
+        <p>
+          New to our platform?
+          <a routerLink="/register" class="register-link">Create an account</a>
+        </p>
+      </div>
+    </div>
+    <app-toaster *ngIf="toast" [message]="toast.message" [type]="toast.type"></app-toaster>
+  </div>
+  

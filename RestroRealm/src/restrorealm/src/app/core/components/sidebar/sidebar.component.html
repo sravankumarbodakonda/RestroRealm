@@ -1,0 +1,90 @@
+<div class="sidebar-overlay" *ngIf="isExpanded" (click)="closeSidebar()"></div>
+<aside class="sidebar" [class.expanded]="isExpanded">
+    <div class="sidebar-header">
+        <img src="/Users/sravankumarbodakonda/Downloads/png-clipart-chicken-meat-cartoon-chicken-white-food-thumbnail.png" alt="RestroRealm" class="logo" />
+        <!-- <button class="toggle-btn" (click)="toggleSidebar()">
+            <i [class]="isExpanded ? 'fas fa-chevron-left' : 'fas fa-chevron-right'"></i>
+        </button> -->
+    </div>
+
+    <nav class="nav-menu">
+        <a routerLink="/dashboard" routerLinkActive="active" class="nav-item">
+            <i class="fas fa-home"></i>
+            <span *ngIf="isExpanded">Dashboard</span>
+        </a>
+
+        <a *ngIf="readAllOrders" 
+            routerLink="/orders" 
+            routerLinkActive="active" 
+            class="nav-item">
+            <i class="fas fa-receipt"></i>
+            <span *ngIf="isExpanded">Orders</span>
+        </a>
+
+        <a *ngIf="readAllMenuItems" 
+           routerLink="/menu" 
+           routerLinkActive="active" 
+           class="nav-item">
+            <i class="fas fa-utensils"></i>
+            <span *ngIf="isExpanded">Menu</span>
+        </a>
+
+        <a *ngIf="readAllTables" 
+           routerLink="/tables" 
+           routerLinkActive="active" 
+           class="nav-item">
+            <i class="fas fa-chair"></i>
+            <span *ngIf="isExpanded">Tables</span>
+        </a>
+
+        <a *ngIf="readAllReservations" 
+           routerLink="/reservations" 
+           routerLinkActive="active" 
+           class="nav-item">
+            <i class="fas fa-calendar-alt"></i>
+            <span *ngIf="isExpanded">Reservations</span>
+        </a>
+
+        <a *ngIf="readAllKitchenOrders" 
+           routerLink="/kitchen" 
+           routerLinkActive="active" 
+           class="nav-item">
+            <i class="fas fa-fire"></i>
+            <span *ngIf="isExpanded">Kitchen</span>
+        </a>
+
+        <a *ngIf="readAllStaff" 
+           routerLink="/staff" 
+           routerLinkActive="active" 
+           class="nav-item">
+            <i class="fas fa-users"></i>
+            <span *ngIf="isExpanded">Staff</span>
+        </a>
+
+        <a *ngIf="readAllReports" 
+           routerLink="/reports" 
+           routerLinkActive="active" 
+           class="nav-item">
+            <i class="fas fa-chart-bar"></i>
+            <span *ngIf="isExpanded">Reports</span>
+        </a>
+
+        <a
+           routerLink="/settings" 
+           routerLinkActive="active" 
+           class="nav-item">
+            <i class="fas fa-cog"></i>
+            <span *ngIf="isExpanded">Settings</span>
+        </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="user-info" *ngIf="isExpanded">
+            <img [src]="user?.profilePicture || 'assets/default-avatar.png'" alt="User" class="avatar" />
+            <div class="user-details">
+                <span class="user-name">{{ user?.name }}</span>
+                <span class="user-role">{{ user?.role }}</span>
+            </div>
+        </div>
+    </div>
+</aside>
