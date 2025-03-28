@@ -1,0 +1,133 @@
+<div class="admin-container">
+  <header class="menu-header">
+      <h1 class="menu-title">User Management</h1>
+      <div class="menu-controls">
+          <div class="search-container">
+              <span class="search-icon fas fa-search"></span>
+              <input 
+                  type="text" 
+                  class="search-input"
+                  [(ngModel)]="searchTerm" 
+                  (input)="onSearch()" 
+                  placeholder="Search menu items..."
+                  aria-label="Search menu items"
+              />
+          </div>
+          <div class="controls-group">
+              <button 
+                  *ngIf="createSingleUser"
+                  class="mdc-button mdc-button--raised" 
+                  (click)="openCreateDialog()">
+                  <span class="mdc-button__label">
+                      <i class="fas fa-plus"></i> Add User
+                  </span>
+              </button>
+          </div>
+      </div>
+  </header>
+
+  <div class="table-container">
+    <table class="user-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Profile</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let user of users">
+          <td>{{ user.userId }}</td>
+          <td>
+            <img [src]="user.profileImageUrl ?  imageUrl + user.profileImageUrl : placeholderImage" class="table-profile-image" />
+          </td>
+          <td>{{ user.name }}</td>
+          <td>{{ user.email }}</td>
+          <td>{{ user.role.name }}</td>
+          <td>
+            <button *ngIf="editSingleUser" (click)="openEditDialog(user)" class="edit-btn"><i class="fas fa-edit"></i> Edit</button>
+            <button *ngIf="deleteSingleUser" (click)="deleteUser(user.userId)" class="delete-btn"><i class="fas fa-trash"></i> Delete</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Dialog -->
+  <div class="dialog-backdrop" *ngIf="showDialog">
+      <div class="dialog-card">
+          <h2 class="dialog-title">{{ editingUser ? 'Edit' : 'Create' }} User</h2>
+          
+          <form [formGroup]="userForm" (ngSubmit)="onSubmit()" class="dialog-form">
+            <div class="form-field">
+                <label>Name</label>
+                <input 
+                    type="text" 
+                    formControlName="name"
+                    class="mdc-text-field__input"
+                    required
+                />
+            </div>
+
+            <div class="form-field">
+                <label>Email</label>
+                <input 
+                    type="text" 
+                    formControlName="email"
+                    class="mdc-text-field__input"
+                    required
+                />
+            </div>
+
+            <div class="form-field">
+                <label>Password</label>
+                <input 
+                    type="text" 
+                    formControlName="password"
+                    class="mdc-text-field__input"
+                    required
+                />
+            </div>
+
+            <div class="form-field">
+                <label>Date Of Birth</label>
+                <input 
+                    type="date" 
+                    formControlName="dateOfBirth"
+                    class="mdc-text-field__input"
+                />
+            </div>
+                  
+            <div class="form-field">
+                <label>Role</label>
+                <select 
+                    formControlName="roleId"
+                    class="mdc-select"
+                    required>
+                    <option *ngFor="let role of roles" [value]=role.id>
+                        {{ role.name }}
+                    </option>
+                </select>
+            </div>
+
+              <div class="dialog-actions">
+                  <button 
+                      type="button" 
+                      class="mdc-button"
+                      (click)="closeDialog()">
+                      Cancel
+                  </button>
+                  <button 
+                    type="submit" 
+                    class="mdc-button mdc-button--raised"
+                    [disabled]="userForm.invalid || loading">
+                    {{ loading ? 'Saving...' : 'Save Changes' }}
+                  </button>
+              </div>
+          </form>
+      </div>
+  </div>
+</div>

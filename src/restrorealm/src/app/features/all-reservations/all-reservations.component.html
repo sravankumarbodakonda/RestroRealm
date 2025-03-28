@@ -1,0 +1,400 @@
+<div class="menu-container">
+  <!-- Decorative backdrop elements -->
+  <div class="luxury-backdrop">
+    <div class="circle circle-1"></div>
+    <div class="circle circle-2"></div>
+    <div class="circle circle-3"></div>
+    <div class="line line-1"></div>
+    <div class="line line-2"></div>
+    <div class="line line-3"></div>
+  </div>
+
+  <!-- Permission Denied View -->
+  <div *ngIf="!hasViewPermission && !isLoading" class="permission-denied">
+    <i class="material-icons permission-denied-icon">lock</i>
+    <h2>Access Restricted</h2>
+    <p>You don't have the necessary permissions to view reservations. Please contact your administrator for access.</p>
+    <button class="permission-denied-btn" routerLink="/dashboard">
+      <i class="material-icons">home</i> Return to Dashboard
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-overlay">
+    <div class="loading-spinner"></div>
+  </div>
+
+  <!-- Main Content - Only shown if user has permission -->
+  <div *ngIf="hasViewPermission && !isLoading">
+    <header class="menu-header">
+      <h1 class="menu-title">Reservations</h1>
+      <div class="menu-controls">
+        <button class="mdc-button mdc-button--raised" (click)="addReservation()">
+          <i class="material-icons">add</i> Add Reservation
+        </button>
+        <div class="view-mode-toggle" [attr.data-view]="viewMode">
+          <button id="grid-button" [class.active]="viewMode === 'grid'" (click)="setViewMode('grid')">
+            <i class="material-icons">grid_view</i>
+          </button>
+          <button id="list-button" [class.active]="viewMode === 'list'" (click)="setViewMode('list')">
+            <i class="material-icons">view_list</i>
+          </button>
+          <div class="toggle-slider"></div>
+        </div>
+      </div>
+    </header>
+  
+    <!-- Filter Button -->
+    <!-- <button class="filter-toggle-btn" [class.active]="showFilters" (click)="toggleFilters()">
+      <div class="filter-btn-content">
+        <i class="material-icons">filter_list</i>
+        <span>Filters</span>
+      </div>
+      <i class="material-icons">{{ showFilters ? 'keyboard_arrow_up' : 'keyboard_arrow_down' }}</i>
+      <div class="filter-badge" *ngIf="isFiltersActive">{{ getAppliedFiltersCount() }}</div>
+    </button> -->
+  
+    <!-- Filters Section (Collapsible) -->
+    <div class="filters-section" [class.show]="showFilters">
+      <div class="filters-header">
+        <h3 class="filters-title">
+          <i class="material-icons">tune</i> Filter Reservations
+        </h3>
+        <button class="filters-reset" (click)="clearFilters()" [disabled]="!isFiltersActive">
+          <i class="material-icons">restart_alt</i> Reset Filters
+        </button>
+      </div>
+      
+      <!-- Search Filter Group -->
+      <div class="filter-group search-group">
+        <div class="filter-item">
+          <label class="filter-label"><i class="material-icons">person</i> Customer Name</label>
+          <div class="filter-input-with-icon">
+            <i class="material-icons input-icon">search</i>
+            <input type="text" [(ngModel)]="nameQuery" (input)="applyFilters()" 
+                  placeholder="Search by name" class="filter-input">
+          </div>
+        </div>
+        <div class="filter-item">
+          <label class="filter-label"><i class="material-icons">phone</i> Phone</label>
+          <div class="filter-input-with-icon">
+            <i class="material-icons input-icon">search</i>
+            <input type="text" [(ngModel)]="phoneQuery" (input)="applyFilters()" 
+                  placeholder="Search by phone" class="filter-input">
+          </div>
+        </div>
+        <div class="filter-item">
+          <label class="filter-label"><i class="material-icons">email</i> Email</label>
+          <div class="filter-input-with-icon">
+            <i class="material-icons input-icon">search</i>
+            <input type="text" [(ngModel)]="emailQuery" (input)="applyFilters()" 
+                  placeholder="Search by email" class="filter-input">
+          </div>
+        </div>
+      </div>
+  
+      <!-- Tables and Status Filter Group -->
+      <div class="filter-group select-group">
+        <div class="filter-item table-filter">
+          <label class="filter-label"><i class="material-icons">table_restaurant</i> Tables</label>
+          <div class="custom-multiselect">
+            <div class="multiselect-selected" (click)="toggleTableDropdown()">
+              <span *ngIf="selectedTables.length === 0">Select Tables</span>
+              <span *ngIf="selectedTables.length === 1">1 Table Selected</span>
+              <span *ngIf="selectedTables.length > 1">{{ selectedTables.length }} Tables Selected</span>
+              <i class="material-icons">{{ isTableDropdownOpen ? 'keyboard_arrow_up' : 'keyboard_arrow_down' }}</i>
+            </div>
+            <div class="multiselect-dropdown table-dropdown" *ngIf="isTableDropdownOpen">
+              <div class="multiselect-options">
+                <div class="select-all-option">
+                  <label class="checkbox-container">
+                    <input type="checkbox" 
+                           [checked]="selectedTables.length === availableTables.length" 
+                           (change)="toggleAllTables($event)">
+                    <span class="checkmark"></span>
+                    <span class="option-label">Select All Tables</span>
+                  </label>
+                </div>
+                <div class="multiselect-option" *ngFor="let table of availableTables">
+                  <label class="checkbox-container">
+                    <input type="checkbox" 
+                           [value]="table.id" 
+                           [checked]="selectedTables.includes(table.id.toString())"
+                           (change)="toggleTableSelection(table.id.toString())">
+                    <span class="checkmark"></span>
+                    <span class="option-label">Table {{ table.tableNumber }}</span>
+                  </label>
+                </div>
+              </div>
+              <div class="multiselect-footer">
+                <button class="multiselect-apply" (click)="applyFilters(); isTableDropdownOpen = false">Apply</button>
+                <button class="multiselect-clear" (click)="clearSelectedTables(); applyFilters()">Clear</button>
+              </div>
+            </div>
+          </div>
+        </div>
+  
+        <div class="filter-item status-filter">
+          <label class="filter-label"><i class="material-icons">flag</i> Status</label>
+          <div class="custom-multiselect">
+            <div class="multiselect-selected" (click)="toggleStatusDropdown()">
+              <span *ngIf="selectedStatuses.length === 0">Select Status</span>
+              <span *ngIf="selectedStatuses.length === 1">{{ selectedStatuses[0] }}</span>
+              <span *ngIf="selectedStatuses.length > 1">{{ selectedStatuses.length }} Statuses Selected</span>
+              <i class="material-icons">{{ isStatusDropdownOpen ? 'keyboard_arrow_up' : 'keyboard_arrow_down' }}</i>
+            </div>
+            <div class="multiselect-dropdown status-dropdown" *ngIf="isStatusDropdownOpen">
+              <div class="multiselect-options">
+                <div class="select-all-option">
+                  <label class="checkbox-container">
+                    <input type="checkbox" 
+                           [checked]="selectedStatuses.length === statusOptions.length" 
+                           (change)="toggleAllStatuses($event)">
+                    <span class="checkmark"></span>
+                    <span class="option-label">Select All Statuses</span>
+                  </label>
+                </div>
+                <div class="multiselect-option" *ngFor="let status of statusOptions">
+                  <label class="checkbox-container">
+                    <input type="checkbox" 
+                           [value]="status" 
+                           [checked]="selectedStatuses.includes(status)"
+                           (change)="toggleStatusSelection(status)">
+                    <span class="checkmark"></span>
+                    <span class="option-label status-option">
+                      <i class="material-icons status-icon" [ngClass]="getStatusClass(status)">{{ getStatusIcon(status) }}</i>
+                      {{ status }}
+                    </span>
+                  </label>
+                </div>
+              </div>
+              <div class="multiselect-footer">
+                <button class="multiselect-apply" (click)="applyFilters(); isStatusDropdownOpen = false">Apply</button>
+                <button class="multiselect-clear" (click)="clearSelectedStatuses(); applyFilters()">Clear</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- Date Range Filter Group -->
+      <div class="filter-group date-range-group">
+        <div class="date-filter-wrapper">
+          <div class="date-range-label">
+            <i class="material-icons date-icon">event</i> Date & Time Range
+          </div>
+          <div class="date-time-controls">
+            <div class="filter-item date-picker">
+              <label class="filter-label">Reservation Date</label>
+              <div class="date-input-wrapper">
+                <i class="material-icons">calendar_today</i>
+                <input type="date" [(ngModel)]="selectedDate" (change)="applyFilters()" class="filter-input date-input">
+              </div>
+            </div>
+            
+            <div class="time-range-wrapper">
+              <div class="time-input-container">
+                <span class="time-label">From</span>
+                <div class="time-input-wrapper">
+                  <i class="material-icons">schedule</i>
+                  <input type="time" [(ngModel)]="timeRangeStart" (change)="applyFilters()" class="filter-input time-input">
+                </div>
+              </div>
+              
+              <div class="time-range-divider">
+                <i class="material-icons">arrow_forward</i>
+              </div>
+              
+              <div class="time-input-container">
+                <span class="time-label">To</span>
+                <div class="time-input-wrapper">
+                  <i class="material-icons">schedule</i>
+                  <input type="time" [(ngModel)]="timeRangeEnd" (change)="applyFilters()" class="filter-input time-input">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Active Filters Display -->
+      <div class="active-filters" *ngIf="isFiltersActive">
+        <h4 class="active-filters-title">Applied Filters:</h4>
+        <div class="active-filters-badges">
+          <div class="filter-badge-item" *ngIf="nameQuery">
+            Name: {{ nameQuery }}
+            <button class="badge-remove" (click)="nameQuery = ''; applyFilters()">
+              <i class="material-icons">close</i>
+            </button>
+          </div>
+          <div class="filter-badge-item" *ngIf="phoneQuery">
+            Phone: {{ phoneQuery }}
+            <button class="badge-remove" (click)="phoneQuery = ''; applyFilters()">
+              <i class="material-icons">close</i>
+            </button>
+          </div>
+          <div class="filter-badge-item" *ngIf="emailQuery">
+            Email: {{ emailQuery }}
+            <button class="badge-remove" (click)="emailQuery = ''; applyFilters()">
+              <i class="material-icons">close</i>
+            </button>
+          </div>
+          <div class="filter-badge-item" *ngIf="timeRangeStart || timeRangeEnd">
+            Time: {{ timeRangeStart || '--:--' }} to {{ timeRangeEnd || '--:--' }}
+            <button class="badge-remove" (click)="timeRangeStart = ''; timeRangeEnd = ''; applyFilters()">
+              <i class="material-icons">close</i>
+            </button>
+          </div>
+          <div class="filter-badge-item" *ngIf="selectedTables.length > 0">
+            Tables: {{ selectedTables.length }} selected
+            <button class="badge-remove" (click)="selectedTables = []; applyFilters()">
+              <i class="material-icons">close</i>
+            </button>
+          </div>
+          <div class="filter-badge-item" *ngIf="!arraysEqual(selectedStatuses, ['ACTIVE'])">
+            Status: {{ selectedStatuses.join(', ') }}
+            <button class="badge-remove" (click)="selectedStatuses = ['ACTIVE']; applyFilters()">
+              <i class="material-icons">close</i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  
+    <!-- Action Buttons - Only shown when reservations are selected -->
+    <div class="action-buttons" *ngIf="selectedReservations.size > 0">
+      <button class="premium-button danger" (click)="cancelSelectedReservations()">
+        <i class="material-icons">cancel</i> Cancel Selected ({{ selectedReservations.size }})
+      </button>
+      <button class="premium-button warn" (click)="occupySelected()">
+        <i class="material-icons">room_service</i> Mark as Occupied ({{ selectedReservations.size }})
+      </button>
+      <button class="premium-button default" (click)="selectedReservations.clear()">
+        <i class="material-icons">clear</i> Clear Selection
+      </button>
+    </div>
+
+    <!-- Empty State - Shown when no reservations match filters -->
+    <div *ngIf="reservations.length === 0" class="empty-state">
+      <i class="material-icons">event_busy</i>
+      <h3>No Reservations Found</h3>
+      <p>There are no reservations matching your current filters. Try adjusting your search criteria or clear filters.</p>
+    </div>
+  
+    <!-- Reservations List/Grid - Only shown when there are reservations -->
+    <main *ngIf="reservations.length > 0" class="item-container" [class.grid-view]="viewMode === 'grid'" [class.list-view]="viewMode === 'list'" [class.view-transition]="true">
+      <article *ngFor="let reservation of reservations" class="menu-item premium-card" [attr.data-status]="reservation.status">
+        <input type="checkbox" (change)="toggleSelection(reservation.id)" 
+               [checked]="selectedReservations.has(reservation.id)">
+        
+        <div class="item-content">
+          <header class="item-header">
+            <h3 class="item-title">{{ reservation.customerName }}</h3>
+            <p class="item-description">{{ formatDateTime(reservation.reservationDate, reservation.reservationTime) }}</p>
+            <p class="item-description" *ngIf="viewMode === 'grid'">
+              <strong>Table:</strong> {{ reservation.tableNumber || 'Not assigned' }}
+            </p>
+          </header>
+          
+          <p class="item-description" *ngIf="viewMode === 'list'">
+            <strong>Table:</strong> {{ reservation.tableNumber || 'Not assigned' }}
+          </p>
+          
+          <div class="item-status">
+            <div class="status-badge premium-badge" [class]="getStatusClass(reservation.status)">
+              <i class="material-icons">
+                {{ getStatusIcon(reservation.status) }}
+              </i>
+              {{ reservation.status }}
+            </div>
+          </div>
+          
+          <div class="status-actions">
+            <button class="action-button view" (click)="openModal(reservation)" title="View Details">
+                <i class="material-icons">visibility</i>
+            </button>
+            <button class="action-button occupy" *ngIf="reservation.status !== 'OCCUPIED'" 
+                    (click)="setStatus(reservation.id, 'OCCUPIED')" title="Mark as Occupied">
+              <i class="material-icons">restaurant</i>
+            </button>
+            <button class="action-button complete" *ngIf="reservation.status === 'ACTIVE'" 
+                    (click)="setStatus(reservation.id, 'COMPLETED')" title="Mark as Completed">
+              <i class="material-icons">check_circle</i>
+            </button>
+            <button class="action-button cancel" *ngIf="reservation.status !== 'CANCELLED'" 
+                    (click)="setStatus(reservation.id, 'CANCELLED')" title="Cancel Reservation">
+              <i class="material-icons">cancel</i>
+            </button>
+          </div>
+          
+          <!-- Undo Banner - Only shown when a status has been recently changed -->
+          <div *ngIf="undoStates.has(reservation.id)" class="undo-banner">
+            <i class="material-icons">undo</i> Status changed. 
+            <button (click)="undoStatusChange(reservation.id)">Undo</button>
+          </div>
+        </div>
+      </article>
+    </main>
+  
+    <!-- Pagination - Only shown when there are reservations -->
+    <div *ngIf="totalReservations > 0" class="pagination-container">
+      <button class="premium-pagination-button" (click)="changePage(currentPage - 1)" [disabled]="currentPage === 1">
+        <i class="material-icons">chevron_left</i> Previous
+      </button>
+      <span class="pagination-info">Page {{ currentPage }} of {{ Math.ceil(totalReservations / itemsPerPage) }}</span>
+      <button class="premium-pagination-button" (click)="changePage(currentPage + 1)" 
+              [disabled]="currentPage * itemsPerPage >= totalReservations">
+        Next <i class="material-icons">chevron_right</i>
+      </button>
+    </div>
+  
+    <!-- Reservation Details Modal -->
+    <div *ngIf="showModal" class="modal-backdrop premium-backdrop" (click)="closeModal($event)">
+      <div class="modal premium-modal" [class.fade-in]="showModal">
+        <div class="modal-header premium-modal-header">
+          <h2><i class="material-icons">person</i> {{ selectedReservation?.customerName }}</h2>
+          <button class="modal-close-btn" (click)="closeModalButton()">
+            <i class="material-icons">close</i>
+          </button>
+        </div>
+        <div class="modal-content premium-modal-content">
+          <p><strong><i class="material-icons">email</i> Email:</strong> {{ selectedReservation?.email || 'N/A' }}</p>
+          <p><strong><i class="material-icons">phone</i> Phone:</strong> {{ selectedReservation?.phone || selectedReservation?.customerContact || 'N/A' }}</p>
+          <p><strong><i class="material-icons">calendar_today</i> Date:</strong> {{ formatDateTime(selectedReservation?.reservationDate, '') }}</p>
+          <p><strong><i class="material-icons">access_time</i> Time:</strong> {{ selectedReservation?.reservationTime || 'N/A' }}</p>
+          <p><strong><i class="material-icons">table_restaurant</i> Table:</strong> {{ selectedReservation?.tableNumber || 'Not assigned' }}</p>
+          <p><strong><i class="material-icons">people</i> Guests:</strong> {{ selectedReservation?.numberOfGuests || 'N/A' }}</p>
+          <p><strong><i class="material-icons">flag</i> Status:</strong> 
+            <span class="status-badge premium-badge" [class]="getStatusClass(selectedReservation?.status)">
+              <i class="material-icons">{{ getStatusIcon(selectedReservation?.status) }}</i>
+              {{ selectedReservation?.status }}
+            </span>
+          </p>
+          <p *ngIf="selectedReservation?.specialRequests">
+            <strong><i class="material-icons">note</i> Special Requests:</strong> {{ selectedReservation?.specialRequests }}
+          </p>
+        </div>
+        <div class="modal-footer premium-modal-footer">
+          <button class="premium-button primary" (click)="closeModalButton()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div *ngIf="showToast" class="toast-container">
+    <div class="toast-notification premium-toast" [class]="toastType" [class.fade-out]="!showToast">
+      <div class="toast-icon">
+        <i class="material-icons">{{ getToastIcon() }}</i>
+      </div>
+      <div class="toast-content">
+        <div class="toast-title">{{ toastType | titlecase }}</div>
+        <div class="toast-message">{{ toastMessage }}</div>
+      </div>
+      <button class="toast-close" (click)="closeToast()">
+        <i class="material-icons">close</i>
+      </button>
+      <div class="toast-progress premium-toast-progress"></div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,78 @@
+<div class="settings-container">
+    <!-- Header Section -->
+    <header class="settings-header">
+        <h1 class="settings-title">Settings</h1>
+        <div class="settings-controls">
+            <div class="search-container">
+                <span class="search-icon fas fa-search"></span>
+                <input 
+                    type="text" 
+                    class="search-input"
+                    [(ngModel)]="searchTerm" 
+                    (input)="onSearch()" 
+                    placeholder="Search settings..."
+                    aria-label="Search Settings"
+                />
+            </div>
+            <div class="view-toggle">
+                <button 
+                    [class.active]="viewMode === 'card'" 
+                    (click)="viewMode = 'card'; saveViewPreference('card')"
+                    aria-label="Card View">
+                    <i class="fas fa-th-large"></i>
+                </button>
+                <button 
+                    [class.active]="viewMode === 'list'" 
+                    (click)="viewMode = 'list'; saveViewPreference('list')"
+                    aria-label="List View">
+                    <i class="fas fa-list"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main [class]="'settings-items ' + viewMode + (isLoading ? ' settings-loading' : '')" [@staggerAnimation]="filteredSettings.length">
+        <article 
+            *ngFor="let setting of filteredSettings; let i = index"
+            class="setting-item"
+            [class.card-view]="viewMode === 'card'"
+            [class.list-view]="viewMode === 'list'"
+            [hidden]="!setting.isVisible"
+            [@cardAnimation]="{value: '', params: {delay: i * 100}}"
+            (mouseenter)="onSettingHover(setting.name)"
+            >
+            
+            <div class="setting-content" (click)="onSelect(setting.navigateTo)" (mouseenter)="enhanceItem(setting.name, $event)">
+                <div class="setting-icon" [ngClass]="setting.icon" [attr.title]="getIconTooltip(setting)">
+                    <span *ngIf="setting.count > 0" class="setting-count">{{ setting.count }}</span>
+                </div>
+                <div class="setting-details">
+                    <header class="setting-header">
+                        <h2 class="setting-title">{{ setting.name }}</h2>
+                        <span *ngIf="setting.count > 0" class="setting-stat">{{ setting.count }}</span>
+                    </header>
+                    <p class="setting-description">{{ setting.description }}</p>
+                    <div class="setting-meta">
+                        <div class="badges-wrapper">
+                            <span class="badge" [ngClass]="getSettingClass(setting.name)">{{ setting.name }}</span>
+                            <span *ngIf="setting.lastUpdated" class="setting-timestamp">{{ formatLastUpdated(setting.lastUpdated) }}</span>
+                        </div>
+                        <div class="action-wrapper">
+                            <i class="setting-detail-arrow fas fa-arrow-right"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </article>
+    </main>
+
+    <!-- Empty State -->
+    <div *ngIf="filteredSettings.length === 0" class="empty-state" [@fadeAnimation]>
+        <i class="material-icons fas fa-search"></i>
+        <h3>No Settings Found</h3>
+        <p>We couldn't find any settings matching your search criteria. Try using different keywords or check your permissions.</p>
+        <button (click)="resetSearch()">
+            Reset Search
+        </button>
+    </div>
+</div>

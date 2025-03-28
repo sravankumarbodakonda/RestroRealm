@@ -1,0 +1,66 @@
+<div class="menu-container">
+    <header class="menu-header">
+      <h1 class="menu-title">My Reservations</h1>
+      <div class="menu-controls">
+        <button class="mdc-button mdc-button--raised" (click)="addReservation()">
+          <i class="fas fa-plus"></i> New Reservation
+        </button>
+        <div class="view-mode-toggle">
+          <button class="mdc-button" (click)="viewMode = 'grid'" [class.active]="viewMode === 'grid'">
+            <i class="fas fa-th-large"></i>
+          </button>
+          <button class="mdc-button" (click)="viewMode = 'list'" [class.active]="viewMode === 'list'">
+            <i class="fas fa-list"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Filters -->
+    <div class="filters-section">
+        <div class="filter-group">
+          <input type="date" [(ngModel)]="selectedDate" (change)="applyFilters()" class="filter-input">
+          <select [(ngModel)]="selectedStatus" (change)="applyFilters()" class="filter-select">
+            <option value="">All Statuses</option>
+            <option *ngFor="let status of statusOptions" [value]="status">{{status}}</option>
+          </select>
+        </div>
+    
+        <button class="mdc-button clear-filters" (click)="clearFilters()" 
+                [disabled]="!isFiltersActive">
+          <i class="fas fa-filter-circle-xmark"></i> Clear Filters
+        </button>
+    </div>
+
+    <!-- Reservations List/Grid -->
+    <main *ngIf="reservations.length !== 0" class="item-container" [class.grid-view]="viewMode === 'grid'" [class.list-view]="viewMode === 'list'">
+      <article *ngFor="let reservation of reservations" class="menu-item">
+        <div class="item-content">
+            <header class="item-header">
+              <h2 class="item-title">{{ reservation.customerName }}</h2>
+              <span class="status-badge {{reservation.status.toLowerCase()}}">
+                {{ reservation.status }}
+              </span>
+            </header>
+            <p class="item-description">
+              {{ reservation.reservationDate | date }} at {{ reservation.reservationTime }}
+            </p>
+            <p class="item-meta">Guests: {{ reservation.numberOfGuests }}</p>
+        </div>
+      </article>
+    </main>
+
+    <div *ngIf="reservations.length === 0" class="empty-state">
+        <i class="material-icons fas fa-calendar"></i>
+        <p>No reservations found</p>
+        <button class="mdc-button mdc-button--raised" (click)="addReservation()">
+            Make a Reservation
+        </button>
+    </div>
+
+    <div class="pagination-container" *ngIf="reservations.length > 0">
+      <button class="pagination-button" (click)="changePage(currentPage - 1)" [disabled]="currentPage === 1">Previous</button>
+      <span class="pagination-info">Page {{ currentPage }} of {{ totalPages }}</span>
+      <button class="pagination-button" (click)="changePage(currentPage + 1)" [disabled]="currentPage === totalPages">Next</button>
+    </div>
+  </div>

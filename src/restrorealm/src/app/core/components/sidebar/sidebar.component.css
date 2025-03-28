@@ -1,0 +1,479 @@
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 998;
+    transition: opacity 0.3s ease;
+    backdrop-filter: blur(3px);
+}
+
+.sidebar {
+    height: 100vh;
+    background: #1a1b25;
+    color: #fff;
+    transition: all 0.3s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 999;
+    width: 60px; /* Always start with collapsed width */
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-top: 70px; /* Adjust for navbar height */
+}
+
+.sidebar.expanded {
+    width: 250px;
+}
+
+.sidebar-header {
+    position: sticky;
+    top: 0;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.15);
+    z-index: 2;
+}
+
+.logo {
+    height: 35px;
+    width: auto;
+    transition: opacity 0.3s ease;
+}
+
+
+.toggle-btn {
+    background: none;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s ease;
+}
+
+.toggle-btn:hover, .toggle-btn:focus {
+    background-color: rgba(255, 255, 255, 0.1);
+    outline: none;
+}
+
+.toggle-btn:focus {
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
+}
+
+.user-panel {
+    padding: 20px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.avatar-container {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.initials-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    font-weight: 600;
+    font-size: 16px;
+    object-fit: initial;
+}
+
+.avatar-container::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 10px;
+    height: 10px;
+    background-color: #4ade80;
+    border-radius: 50%;
+    border: 2px solid #1a1b25;
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.user-name {
+    font-weight: 500;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
+}
+
+.user-role {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    background: rgba(231, 76, 60, 0.3);
+    padding: 2px 8px;
+    border-radius: 10px;
+    display: inline-block;
+    margin-top: 4px;
+}
+
+.menu-section {
+    padding: 16px 0 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.menu-section:last-child {
+    border-bottom: none;
+}
+
+.section-title {
+    padding: 0 16px 8px;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.nav-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    width: 100%;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+    position: relative;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    text-align: left;
+    font-family: inherit;
+    font-size: inherit;
+}
+
+.sidebar:not(.expanded) .nav-item {
+    justify-content: center;
+    padding: 10px 0;
+}
+
+.nav-item:hover, .nav-item:focus {
+    background-color: rgba(255, 255, 255, 0.07);
+    color: #fff;
+    outline: none;
+}
+
+.nav-item.active {
+    background: linear-gradient(to right, rgba(231, 76, 60, 0.2), transparent);
+    color: #fff;
+    border-left-color: #e74c3c;
+}
+
+.nav-item i {
+    font-size: 16px;
+    margin-right: 14px;
+    width: 20px;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.sidebar:not(.expanded) .nav-item i {
+    margin-right: 0;
+    font-size: 18px;
+}
+
+.menu-title {
+    font-size: 14px;
+    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Tooltips for collapsed sidebar */
+.sidebar:not(.expanded) .nav-item:hover::after {
+    content: attr(title);
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-left: 10px;
+    background: #2c3e50;
+    padding: 8px 12px;
+    border-radius: 4px;
+    white-space: nowrap;
+    z-index: 1000;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.sidebar:not(.expanded) .nav-item:hover::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: calc(100% - 2px);
+    transform: translateY(-50%);
+    border-width: 6px;
+    border-style: solid;
+    border-color: transparent #2c3e50 transparent transparent;
+    z-index: 1000;
+}
+
+.settings-section {
+    margin-top: auto;
+}
+
+.logout-btn {
+    color: #f87171;
+}
+
+.logout-btn:hover {
+    background-color: rgba(248, 113, 113, 0.1);
+}
+
+.sidebar-footer {
+    padding: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.15);
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.4);
+    text-align: center;
+    margin-top: auto;
+    position: sticky;
+    bottom: 0;
+}
+
+.version {
+    margin-bottom: 4px;
+}
+
+.expand-btn {
+    position: fixed;
+    bottom: 20px;
+    left: 30px;
+    transform: translateX(-50%);
+    background: rgba(231, 76, 60, 0.3);
+    border: none;
+    color: #fff;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 1000;
+}
+
+.expand-btn:hover {
+    background: rgba(231, 76, 60, 0.5);
+    transform: translateX(-50%) scale(1.1);
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
+
+/* Main sidebar content area - allows scrolling while keeping header and footer fixed */
+.sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+/* Custom scrollbar styling */
+.sidebar-content::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sidebar-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Enhanced responsive styles */
+@media (max-width: 992px) {
+    /* On mobile, we float the sidebar over the content */
+    .sidebar {
+        transform: translateX(-100%);
+        width: 250px; /* Always use full width on mobile */
+    }
+    
+    .sidebar.expanded {
+        transform: translateX(0);
+    }
+    
+    /* Show menu item text even in collapsed state on mobile */
+    .sidebar:not(.expanded) .nav-item {
+        justify-content: flex-start;
+        padding: 10px 16px;
+    }
+    
+    .sidebar:not(.expanded) .nav-item i {
+        margin-right: 14px;
+    }
+    
+    /* Hide tooltips on mobile */
+    .sidebar:not(.expanded) .nav-item:hover::after,
+    .sidebar:not(.expanded) .nav-item:hover::before {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    /* Increase touch targets for mobile */
+    .nav-item {
+        padding: 12px 16px;
+    }
+    
+    .sidebar:not(.expanded) .nav-item {
+        padding: 12px 16px;
+    }
+    
+    .toggle-btn {
+        width: 36px;
+        height: 36px;
+    }
+    
+    /* Ensure footer is always visible on smaller screens */
+    .sidebar-footer {
+        padding: 12px;
+    }
+}
+
+/* High Contrast Mode Support */
+@media (forced-colors: active) {
+    .sidebar {
+        border-right: 2px solid currentColor;
+    }
+    
+    .nav-item.active {
+        border-left: 3px solid highlight;
+        background-color: transparent;
+    }
+    
+    .nav-item:hover, .nav-item:focus {
+        background-color: transparent;
+        text-decoration: underline;
+    }
+}
+
+/* Animation for sidebar expansion/collapse */
+@keyframes slideIn {
+    from {
+        transform: translateX(-100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(-100%);
+    }
+}
+
+/* Ensure the sidebar expands to full height when it contains few items */
+.sidebar-inner {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 70px); /* Viewport height minus navbar height */
+}
+
+/* Fix for RTL support */
+[dir="rtl"] .sidebar {
+    left: auto;
+    right: 0;
+}
+
+[dir="rtl"] .sidebar:not(.expanded) .nav-item {
+    justify-content: center;
+}
+
+[dir="rtl"] .sidebar:not(.expanded) .nav-item:hover::after {
+    left: auto;
+    right: 100%;
+    margin-left: 0;
+    margin-right: 10px;
+}
+
+[dir="rtl"] .sidebar:not(.expanded) .nav-item:hover::before {
+    left: auto;
+    right: calc(100% - 2px);
+    border-color: transparent transparent transparent #2c3e50;
+}
+
+/* Fix for nested navigation items */
+.nested-nav-menu {
+    margin-left: 30px;
+    border-left: 1px dashed rgba(255, 255, 255, 0.2);
+    padding-left: 8px;
+}
+
+.sidebar:not(.expanded) .nested-nav-menu {
+    display: none;
+}

@@ -1,0 +1,144 @@
+<!-- Enhanced Menu Page HTML -->
+<div class="menu-container">
+  <div class="menu-header">
+    <h2 class="page-title">{{ categoryName || 'All Items' }}</h2>
+    <div class="menu-filters">
+      <div class="search-container">
+        <input 
+          type="text" 
+          placeholder="Search menu items..." 
+          [(ngModel)]="searchTerm"
+          (input)="filterItems()"
+          class="search-input"
+        >
+        <i class="fa fa-search search-icon"></i>
+      </div>
+      <div class="sort-container">
+        <select [(ngModel)]="sortOption" (change)="sortItems()" class="sort-select">
+          <option value="name">Name (A-Z)</option>
+          <option value="price-low">Price (Low-High)</option>
+          <option value="price-high">Price (High-Low)</option>
+          <option value="calories-low">Calories (Low-High)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading menu items...</p>
+  </div>
+
+  <div *ngIf="!loading && filteredItems.length === 0" class="empty-state">
+    <img src="assets/images/empty-plate.svg" alt="No items found" class="empty-image">
+    <h3>No menu items found</h3>
+    <p>Try adjusting your search or check out another category</p>
+    <button class="primary-btn" routerLink="/menu">View All Menu</button>
+  </div>
+
+  <div *ngIf="!loading && filteredItems.length > 0" class="menu-grid">
+    <div 
+      *ngFor="let item of filteredItems" 
+      class="menu-card" 
+      [class.unavailable]="item.unavailable"
+    >
+      <div class="ribbon" *ngIf="item.isNew">New</div>
+      <div class="card-image-container">
+        <img 
+          [src]="getImageUrl(item)" 
+          [alt]="item.name" 
+          class="menu-image" 
+          (error)="handleImageError($event)"
+        />
+        <div class="quick-view" (click)="showItemDetails(item)">
+          <i class="fa fa-eye"></i> Quick View
+        </div>
+      </div>
+      
+      <div class="menu-details">
+        <div class="name-price">
+          <h3>{{ item.name }}</h3>
+          <span class="price">${{ item.basePrice.toFixed(2) }}</span>
+        </div>
+        <p class="description">{{ item.description }}</p>
+        <div class="item-meta">
+          <span class="calories"><i class="fa fa-fire"></i> {{ item.calories }} kcal</span>
+          <span *ngIf="item.isVegetarian" class="veg-badge">Veg</span>
+          <span *ngIf="item.isSpicy" class="spicy-badge"><i class="fa fa-pepper-hot"></i></span>
+        </div>
+        <button 
+          class="order-btn" 
+          (click)="addToCart(item)"
+          [disabled]="item.unavailable"
+        >
+          <span *ngIf="!item.unavailable">Add to Cart</span>
+          <span *ngIf="item.unavailable">Unavailable</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <app-toaster *ngIf="toast" [message]="toast.message" [type]="toast.type"></app-toaster>
+</div>
+
+<!-- Item Detail Modal -->
+<div class="modal" *ngIf="selectedItem">
+  <div class="modal-content">
+    <span class="close-btn" (click)="closeItemDetails()">&times;</span>
+    <div class="modal-grid">
+      <div class="modal-image">
+        <img [src]="getImageUrl(selectedItem)" [alt]="selectedItem.name">
+      </div>
+      <div class="modal-details">
+        <h2>{{ selectedItem.name }}</h2>
+        <p class="description">{{ selectedItem.description }}</p>
+        <div class="price-calories">
+          <span class="price">${{ selectedItem.basePrice.toFixed(2) }}</span>
+          <span class="calories">{{ selectedItem.calories }} calories</span>
+        </div>
+        
+        <div class="customization" *ngIf="selectedItem.customizations && selectedItem.customizations.length > 0">
+          <h3>Customize Your Order</h3>
+          <div *ngFor="let option of selectedItem.customizations" class="option-group">
+            <h4>{{ option.name }}</h4>
+            <div class="option-items">
+              <div *ngFor="let choice of option.choices" class="option-item">
+                <input 
+                  type="checkbox" 
+                  [id]="'option-' + choice.id.toString()" 
+                  [name]="option.name"
+                  [(ngModel)]="choice.selected"
+                >
+                <label [for]="'option-' + choice.id.toString()">
+                  {{ choice.name }} 
+                  <span *ngIf="choice.priceAdjustment > 0">(+${{ choice.priceAdjustment.toFixed(2) }})</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="quantity">
+          <button 
+            (click)="decreaseQuantity()" 
+            [disabled]="orderQuantity <= 1"
+            class="quantity-btn"
+          >-</button>
+          <span>{{ orderQuantity }}</span>
+          <button (click)="increaseQuantity()" class="quantity-btn">+</button>
+        </div>
+        
+        <div class="action-buttons">
+          <button 
+            class="add-cart-btn" 
+            (click)="addCustomizedItemToCart()"
+            [disabled]="selectedItem.unavailable"
+          >
+            <span *ngIf="!selectedItem.unavailable">Add to Cart - ${{ calculateTotalPrice().toFixed(2) }}</span>
+            <span *ngIf="selectedItem.unavailable">Currently Unavailable</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

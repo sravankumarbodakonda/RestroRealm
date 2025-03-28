@@ -1,0 +1,45 @@
+<div class="profile-container">
+    <div class="profile-card">
+      <div class="profile-header">
+        <h2>My Profile</h2>
+      </div>
+
+      <div class="profile-image-section">
+        <img *ngIf="user.profileImageUrl" 
+             [src]="imageUrl + user.profileImageUrl" 
+             class="profile-image" />
+        <span class="file-name" *ngIf="selectedFile">
+        {{ selectedFile.name }}
+        </span>
+        <div class="form-field">
+          <label class="file-upload">
+            <input 
+              type="file"
+              #fileInput
+              (change)="onImageSelect($event)"
+              accept="image/*"
+              hidden
+            />
+            <span class="upload-button">
+              <i class="material-icons fas fa-upload"></i>
+              {{ user.profileImageUrl ? 'Change Image' : 'Upload Image' }}
+            </span>
+          </label>
+        </div>
+        <button 
+          *ngIf="selectedFile"
+          (click)="uploadProfileImage()" 
+          class="save-btn"
+          [disabled]="uploading">
+          {{ uploading ? 'Uploading...' : 'Upload' }}
+        </button>
+      </div>
+      <div class="profile-info">
+        <label class="form-label">Name</label>
+        <input [(ngModel)]="user.name" type="text" class="form-input" />
+        <label class="form-label">Email</label>
+        <input [(ngModel)]="user.email" type="email" class="form-input" />
+        <button (click)="saveChanges()" class="save-btn">Save Changes</button>
+      </div>
+    </div>
+</div>

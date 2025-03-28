@@ -1,0 +1,2292 @@
+<div class="dashboard-wrapper" [class.dashboard-ready]="dashboardReady">
+    <!-- Loading overlay -->
+    <div class="loading-overlay" *ngIf="loading">
+      <div class="loading-spinner">
+        <div class="spinner-inner"></div>
+      </div>
+      <p class="loading-text">Loading your royal experience...</p>
+    </div>
+  
+    <!-- Header Bar -->
+    <div class="dashboard-header" [@fadeInOut]>
+      <div class="header-greeting">
+        <h1 class="greeting-title">Good {{timeOfDay}}, <span>{{currentUser?.name || 'Guest'}}</span></h1>
+        <p class="greeting-subtitle">
+          <ng-container [ngSwitch]="userRole">
+            <span *ngSwitchCase="'CUSTOMER'">Welcome back to your culinary journey!</span>
+            <span *ngSwitchCase="'CHEF'">Your culinary expertise awaits the kitchen!</span>
+            <span *ngSwitchCase="'CASHIER'">Ready to create exceptional checkout experiences!</span>
+            <span *ngSwitchCase="'SERVER'">Prepared to deliver impeccable service!</span>
+            <span *ngSwitchCase="'BARTENDER'">Craft remarkable drinks and experiences!</span>
+            <span *ngSwitchCase="'MANAGER'">Managing excellence across all operations!</span>
+            <span *ngSwitchCase="'ADMIN'">Administering the complete restaurant experience!</span>
+            <span *ngSwitchCase="'SUPERADMIN'">Overseeing our entire culinary empire!</span>
+            <span *ngSwitchDefault>Welcome to RestroRealm Dashboard!</span>
+          </ng-container>
+        </p>
+      </div>
+      <div class="header-actions">
+        <div class="date-time">
+          <div class="date">{{currentDate | date:'EEEE, MMMM d, y'}}</div>
+          <div class="time">{{currentTime | date:'h:mm a'}}</div>
+        </div>
+        <!-- <button class="theme-toggle" (click)="toggleDarkMode()" [class.active]="isDarkMode" title="Toggle dark mode">
+          <i class="fas fa-moon" *ngIf="!isDarkMode"></i>
+          <i class="fas fa-sun" *ngIf="isDarkMode"></i>
+          <span class="toggle-label">{{ isDarkMode ? 'Light Mode' : 'Dark Mode' }}</span>
+        </button> -->
+      </div>
+    </div>
+  
+    <!-- Content Area -->
+    <div class="dashboard-content" [@fadeInOut]>
+      <!-- Metrics Section -->
+      <div class="section metrics-section">
+        <div class="section-header" (click)="toggleSection('metrics')">
+          <h2 class="section-title">
+            <i class="fas fa-chart-bar"></i>
+            <span>Key Metrics</span>
+          </h2>
+          <button class="toggle-button">
+            <i [class]="expandedSections['metrics'] ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+          </button>
+        </div>
+        <div class="section-content" [@expandCollapse]="expandedSections['metrics'] ? 'expanded' : 'collapsed'">
+          <div class="metrics-cards">
+            <div class="metric-card" *ngFor="let card of metricCards" [style.--card-color]="card.color" 
+                 [style.display]="hasPermission(card.permission) ? 'flex' : 'none'">
+              <div class="metric-icon">
+                <i [class]="'fas ' + card.icon"></i>
+              </div>
+              <div class="metric-content">
+                <h3 class="metric-title">{{card.title}}</h3>
+                <div class="metric-value">{{card.value}}</div>
+                <div class="metric-trend" *ngIf="card.trend !== undefined" [class.trend-up]="card.trendUp" [class.trend-down]="!card.trendUp">
+                  <i [class]="card.trendUp ? 'fas fa-arrow-up' : 'fas fa-arrow-down'"></i>
+                  <span>{{card.trend}}%</span>
+                </div>
+              </div>
+              <a *ngIf="card.link" [routerLink]="card.link" class="metric-link">
+                <i class="fas fa-arrow-right"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- CUSTOMER RESERVATIONS SECTION -->
+      <div class="section reservations-section" *ngIf="hasPermission(permissions.VIEW_RESERVATIONS)">
+        <div class="section-header" (click)="toggleSection('reservations')">
+          <h2 class="section-title">
+            <i class="fas fa-calendar-alt"></i>
+            <span>My Reservations</span>
+          </h2>
+          <button class="toggle-button">
+            <i [class]="expandedSections['reservations'] ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+          </button>
+        </div>
+        <div class="section-content" [@expandCollapse]="expandedSections['reservations'] ? 'expanded' : 'collapsed'">
+          <div class="reservations-list card-container">
+            <div class="card reservation-card" *ngFor="let reservation of reservations.slice(0, 3)">
+              <div class="reservation-status" [class]="reservation.status">{{reservation.status}}</div>
+              <div class="reservation-content">
+                <div class="reservation-datetime">
+                  <div class="reservation-date">{{reservation.date}}</div>
+                  <div class="reservation-time">{{reservation.time}}</div>
+                </div>
+                <div class="reservation-details">
+                  <div class="reservation-guests">
+                    <i class="fas fa-users"></i> {{reservation.guests}} guests
+                  </div>
+                  <div class="reservation-table" *ngIf="reservation.tableNumber">
+                    <i class="fas fa-chair"></i> Table {{reservation.tableNumber}}
+                  </div>
+                </div>
+              </div>
+              <div class="reservation-actions">
+                <button class="btn-modify" *ngIf="reservation.status === 'confirmed' && hasPermission(permissions.MAKE_RESERVATION)">
+                  <i class="fas fa-edit"></i> Modify
+                </button>
+                <button class="btn-cancel" *ngIf="reservation.status === 'confirmed' && hasPermission(permissions.MAKE_RESERVATION)">
+                  <i class="fas fa-times"></i> Cancel
+                </button>
+              </div>
+            </div>
+            <div class="card action-card" *ngIf="hasPermission(permissions.MAKE_RESERVATION)">
+              <div class="action-content">
+                <i class="fas fa-plus-circle"></i>
+                <span>Make a New Reservation</span>
+              </div>
+              <form [formGroup]="reservationForm" class="reservation-form">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="resDate">Date</label>
+                    <input type="date" formControlName="date" id="resDate">
+                  </div>
+                  <div class="form-group">
+                    <label for="resTime">Time</label>
+                    <input type="time" formControlName="time" id="resTime">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="resGuests">Guests</label>
+                    <input type="number" formControlName="guests" id="resGuests" min="1" max="20">
+                  </div>
+                  <div class="form-group">
+                    <label for="resName">Name</label>
+                    <input type="text" formControlName="name" id="resName">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="resPhone">Phone</label>
+                    <input type="tel" formControlName="phone" id="resPhone">
+                  </div>
+                  <div class="form-group">
+                    <label for="resEmail">Email</label>
+                    <input type="email" formControlName="email" id="resEmail">
+                  </div>
+                </div>
+                <div class="form-group full-width">
+                  <label for="resRequests">Special Requests</label>
+                  <textarea formControlName="specialRequests" id="resRequests" rows="3"></textarea>
+                </div>
+                <button type="button" class="btn-submit" (click)="makeReservation()">
+                  <i class="fas fa-calendar-check"></i> Book Reservation
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- CUSTOMER ORDERS SECTION -->
+      <div class="section orders-section" *ngIf="hasPermission(permissions.VIEW_RECENT_ORDERS)">
+        <div class="section-header" (click)="toggleSection('orders')">
+          <h2 class="section-title">
+            <i class="fas fa-utensils"></i>
+            <span>My Orders</span>
+          </h2>
+          <button class="toggle-button">
+            <i [class]="expandedSections['orders'] ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+          </button>
+        </div>
+        <div class="section-content" [@expandCollapse]="expandedSections['orders'] ? 'expanded' : 'collapsed'">
+          <div class="orders-list card-container">
+            <div class="card order-card" *ngFor="let order of activeOrders.slice(0, 3)">
+              <div class="order-header">
+                <div class="order-id">{{order.id}}</div>
+                <div class="order-status" [class]="order.status">
+                  <i class="fas fa-circle"></i> {{order.status}}
+                </div>
+              </div>
+              <div class="order-items">
+                <div class="order-item" *ngFor="let item of order.items.slice(0, 3)">
+                  <div class="item-quantity">{{item.quantity}}x</div>
+                  <div class="item-name">{{item.name}}</div>
+                  <div class="item-price">${{(item.price * item.quantity).toFixed(2)}}</div>
+                </div>
+                <div class="more-items" *ngIf="order.items.length > 3">
+                  +{{order.items.length - 3}} more items
+                </div>
+              </div>
+              <div class="order-footer">
+                <div class="order-total">
+                  <span>Total:</span> <strong>${{order.totalAmount.toFixed(2)}}</strong>
+                </div>
+                <div class="order-time">
+                  <i class="fas fa-clock"></i> {{order.timestamp | date:'shortTime'}}
+                </div>
+              </div>
+              <div class="order-progress" *ngIf="order.status === 'preparing' || order.status === 'ready'">
+                <div class="progress-bar">
+                  <div class="progress-fill" [style.width]="order.status === 'ready' ? '100%' : '60%'"></div>
+                </div>
+                <div class="progress-text">
+                  <span *ngIf="order.status === 'preparing'">Preparing your meal...</span>
+                  <span *ngIf="order.status === 'ready'">Ready for pickup!</span>
+                </div>
+              </div>
+            </div>
+            <div class="card action-card" *ngIf="hasPermission(permissions.PLACE_ORDER)">
+              <div class="action-content">
+                <i class="fas fa-shopping-bag"></i>
+                <span>Start New Order</span>
+                <button class="btn-accent" (click)="placeOrder()">Order Now</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- CUSTOMER FEEDBACK SECTION -->
+      <div class="section feedback-section" *ngIf="hasPermission(permissions.SUBMIT_FEEDBACK)">
+        <div class="section-header" (click)="toggleSection('feedback')">
+          <h2 class="section-title">
+            <i class="fas fa-comment-alt"></i>
+            <span>Share Your Feedback</span>
+          </h2>
+          <button class="toggle-button">
+            <i [class]="expandedSections['feedback'] ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+          </button>
+        </div>
+        <div class="section-content" [@expandCollapse]="expandedSections['feedback'] ? 'expanded' : 'collapsed'">
+          <div class="card feedback-card">
+            <div class="card-header">
+              <h3>Your opinion matters to us!</h3>
+              <p>Help us improve our service by sharing your experience</p>
+            </div>
+            <form [formGroup]="feedbackForm" class="feedback-form">
+              <div class="rating-container">
+                <label>Your Rating:</label>
+                <div class="star-rating">
+                  <i class="fas fa-star" *ngFor="let star of [1, 2, 3, 4, 5]" 
+                     [class.active]="feedbackForm.get('rating')?.value >= star"
+                     (click)="feedbackForm.get('rating')?.setValue(star)"></i>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="visitDate">Date of Visit</label>
+                <input type="date" formControlName="visitDate" id="visitDate">
+              </div>
+              <div class="form-group">
+                <label for="feedbackComment">Comments</label>
+                <textarea formControlName="comment" id="feedbackComment" rows="4" placeholder="Tell us about your experience..."></textarea>
+              </div>
+              <button type="button" class="btn-submit" (click)="submitFeedback()" [disabled]="feedbackForm.invalid">
+                <i class="fas fa-paper-plane"></i> Submit Feedback
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+  
+      <!-- RECOMMENDATIONS SECTION -->
+      <div class="section recommendations-section" *ngIf="hasPermission(permissions.VIEW_REWARDS)">
+        <div class="section-header">
+          <h2 class="section-title">
+            <i class="fas fa-thumbs-up"></i>
+            <span>Recommended for You</span>
+          </h2>
+        </div>
+        <div class="section-content">
+          <div class="recommendations-carousel">
+            <div class="recommendation-item">
+              <div class="recommendation-image" style="background-image: url('/assets/images/filet-mignon.jpg')">
+                <div class="recommendation-badge">Most Popular</div>
+              </div>
+              <div class="recommendation-content">
+                <h3>Filet Mignon</h3>
+                <p>Premium cut, cooked to perfection with a red wine reduction</p>
+                <div class="recommendation-price">$42.99</div>
+                <button class="btn-order" *ngIf="hasPermission(permissions.PLACE_ORDER)">Order Now</button>
+              </div>
+            </div>
+            <div class="recommendation-item">
+              <div class="recommendation-image" style="background-image: url('/assets/images/truffle-risotto.jpg')">
+                <div class="recommendation-badge">Chef Special</div>
+              </div>
+              <div class="recommendation-content">
+                <h3>Truffle Risotto</h3>
+                <p>Creamy arborio rice with wild mushrooms and truffle oil</p>
+                <div class="recommendation-price">$28.75</div>
+                <button class="btn-order" *ngIf="hasPermission(permissions.PLACE_ORDER)">Order Now</button>
+              </div>
+            </div>
+            <div class="recommendation-item">
+              <div class="recommendation-image" style="background-image: url('/assets/images/chocolate-souffle.jpg')">
+                <div class="recommendation-badge">New</div>
+              </div>
+              <div class="recommendation-content">
+                <h3>Chocolate Soufflé</h3>
+                <p>Warm chocolate soufflé with a molten center and vanilla ice cream</p>
+                <div class="recommendation-price">$14.50</div>
+                <button class="btn-order" *ngIf="hasPermission(permissions.PLACE_ORDER)">Order Now</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- CHEF DASHBOARD - ORDER QUEUE -->
+      <div class="section order-queue-section" *ngIf="hasPermission(permissions.VIEW_ACTIVE_ORDERS)">
+        <div class="section-header" (click)="toggleSection('orderQueue')">
+          <h2 class="section-title">
+            <i class="fas fa-fire"></i>
+            <span>Order Queue</span>
+          </h2>
+          <button class="toggle-button">
+            <i [class]="expandedSections['orderQueue'] ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+          </button>
+        </div>
+        <div class="section-content" [@expandCollapse]="expandedSections['orderQueue'] ? 'expanded' : 'collapsed'">
+          <div class="filter-tabs">
+            <button class="filter-tab active">All Orders ({{getActiveOrdersCount()}})</button>
+            <button class="filter-tab">New ({{getNewOrdersCount()}})</button>
+            <button class="filter-tab">Preparing ({{getPreparingOrdersCount()}})</button>
+            <button class="filter-tab">Ready ({{getReadyOrdersCount()}})</button>
+          </div>
+          <div class="order-queue">
+            <div class="order-ticket" *ngFor="let order of activeOrders.slice(0, 5)" [class]="order.status">
+              <div class="ticket-header">
+                <div class="ticket-id">{{order.id}}</div>
+                <div class="ticket-time">
+                  <i class="fas fa-clock"></i>
+                  {{order.timestamp | date:'HH:mm'}}
+                </div>
+                <div class="ticket-type">
+                  <i class="fas" [ngClass]="{
+                    'fa-utensils': order.orderType === 'dine-in',
+                    'fa-shopping-bag': order.orderType === 'takeaway',
+                    'fa-truck': order.orderType === 'delivery'
+                  }"></i>
+                  {{order.orderType}}
+                </div>
+              </div>
+              <div class="ticket-table" *ngIf="order.tableNumber">
+                <i class="fas fa-chair"></i> Table {{order.tableNumber}}
+              </div>
+              <div class="ticket-customer">
+                <i class="fas fa-user"></i> {{order.customerName}}
+              </div>
+              <div class="ticket-items">
+                <div class="ticket-item" *ngFor="let item of order.items" 
+                     [class.completed]="item.status === 'completed'"
+                     [class.preparing]="item.status === 'preparing'">
+                  <div class="item-status">
+                    <span class="status-circle"></span>
+                  </div>
+                  <div class="item-quantity">{{item.quantity}}x</div>
+                  <div class="item-name">{{item.name}}</div>
+                  <div class="item-timer" *ngIf="item.status === 'preparing' && item.preparationTime">
+                    <i class="fas fa-hourglass-half"></i> {{item.preparationTime}}m
+                  </div>
+                  <div class="item-category" *ngIf="item.category">{{item.category}}</div>
+                  <div class="item-actions" *ngIf="hasPermission(permissions.MANAGE_ORDERS)">
+                    <button class="btn-start" *ngIf="item.status === 'pending'">
+                      <i class="fas fa-play"></i>
+                    </button>
+                    <button class="btn-complete" *ngIf="item.status === 'preparing'">
+                      <i class="fas fa-check"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="ticket-notes" *ngIf="order.specialInstructions">
+                <i class="fas fa-sticky-note"></i> {{order.specialInstructions}}
+              </div>
+              <div class="ticket-actions" *ngIf="hasPermission(permissions.MANAGE_ORDERS)">
+                <div class="action-buttons">
+                  <button class="btn-start" *ngIf="order.status === 'new'" 
+                          (click)="updateOrderStatus(order, 'preparing')">
+                    <i class="fas fa-play"></i> Start
+                  </button>
+                  <button class="btn-ready" *ngIf="order.status === 'preparing'" 
+                          (click)="updateOrderStatus(order, 'ready')">
+                    <i class="fas fa-check"></i> Mark Ready
+                  </button>
+                </div>
+                <div class="action-timer">
+                  <div class="timer-circle" *ngIf="order.status === 'preparing'">
+                    <svg viewBox="0 0 36 36">
+                      <path class="timer-bg" d="M18 2.0845
+                        a 15.9155 15.9155 0 0 1 0 31.831
+                        a 15.9155 15.9155 0 0 1 0 -31.831" />
+                      <path class="timer-fill" d="M18 2.0845
+                        a 15.9155 15.9155 0 0 1 0 31.831
+                        a 15.9155 15.9155 0 0 1 0 -31.831" 
+                        stroke-dasharray="75, 100" />
+                    </svg>
+                    <span class="timer-text">12:30</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- CHEF/MANAGER DASHBOARD - INVENTORY ALERTS -->
+      <div class="section inventory-section" *ngIf="hasPermission(permissions.VIEW_INVENTORY_ALERTS)">
+        <div class="section-header" (click)="toggleSection('inventory')">
+          <h2 class="section-title">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>Inventory Alerts</span>
+          </h2>
+          <div class="alert-badge" *ngIf="getLowStockItemsCount() > 0">{{getLowStockItemsCount()}}</div>
+          <button class="toggle-button">
+            <i [class]="expandedSections['inventory'] ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+          </button>
+        </div>
+        <div class="section-content" [@expandCollapse]="expandedSections['inventory'] ? 'expanded' : 'collapsed'">
+          <div class="inventory-cards">
+            <div class="inventory-card" *ngFor="let item of inventoryItems | slice:0:6" 
+                 [class]="item.status">
+              <div class="inventory-icon">
+                <i class="fas" [ngClass]="{
+                  'fa-drumstick-bite': item.category === 'Proteins',
+                  'fa-carrot': item.category === 'Produce',
+                  'fa-cheese': item.category === 'Dairy',
+                  'fa-box': item.category === 'Dry Goods',
+                  'fa-wine-bottle': item.category === 'Beverages',
+                  'fa-birthday-cake': item.category === 'Desserts'
+                }"></i>
+              </div>
+              <div class="inventory-content">
+                <div class="inventory-header">
+                  <h3 class="inventory-name">{{item.name}}</h3>
+                  <div class="inventory-status">
+                    <i class="fas fa-circle"></i>
+                    <span>{{item.status}}</span>
+                  </div>
+                </div>
+                <div class="inventory-stock">
+                  <div class="stock-level">
+                    <span class="current-stock">{{item.currentStock}}</span>
+                    <span class="stock-unit">{{item.unit}}</span>
+                  </div>
+                  <div class="stock-threshold">
+                    Min: {{item.minThreshold}} {{item.unit}}
+                  </div>
+                </div>
+                <div class="inventory-progress">
+                  <div class="progress-bar">
+                    <div class="progress-fill" 
+                         [style.width]="Math.min(100, (item.currentStock / item.minThreshold) * 50) + '%'"></div>
+                  </div>
+                </div>
+                <div class="inventory-updated">
+                  Last updated: {{item.lastUpdated | date:'MMM d, h:mm a'}}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- ANALYTICS SECTION -->
+      <div class="section analytics-section" *ngIf="hasPermission(permissions.VIEW_ORDERS_CHART) || hasPermission(permissions.VIEW_SALES_CHART) || hasPermission(permissions.VIEW_POPULAR_ITEMS_CHART)">
+        <div class="section-header" (click)="toggleSection('analytics')">
+          <h2 class="section-title">
+            <i class="fas fa-chart-pie"></i>
+            <span>Analytics</span>
+          </h2>
+          <button class="toggle-button">
+            <i [class]="expandedSections['analytics'] ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+          </button>
+        </div>
+        <div class="section-content chart-grid" [@expandCollapse]="expandedSections['analytics'] ? 'expanded' : 'collapsed'">
+          <div class="chart-container" *ngIf="hasPermission(permissions.VIEW_ORDERS_CHART)">
+            <h3 class="chart-title"><i class="fas fa-shopping-basket"></i> Orders by Type</h3>
+            <canvas #ordersChart></canvas>
+          </div>
+          <div class="chart-container" *ngIf="hasPermission(permissions.VIEW_POPULAR_ITEMS_CHART)">
+            <h3 class="chart-title"><i class="fas fa-star"></i> Most Popular Items</h3>
+            <canvas #popularItemsChart></canvas>
+          </div>
+          <div class="chart-container" *ngIf="hasPermission(permissions.VIEW_SALES_CHART)">
+            <h3 class="chart-title"><i class="fas fa-dollar-sign"></i> Daily Sales</h3>
+            <canvas #salesChart></canvas>
+          </div>
+          <div class="chart-container" *ngIf="hasPermission(permissions.VIEW_RESERVATIONS_CHART)">
+            <h3 class="chart-title"><i class="fas fa-calendar-check"></i> Reservations</h3>
+            <canvas #reservationsChart></canvas>
+          </div>
+          <div class="chart-container" *ngIf="hasPermission(permissions.VIEW_STAFF_CHART)">
+            <h3 class="chart-title"><i class="fas fa-user-check"></i> Staff Performance</h3>
+            <canvas #staffPerformanceChart></canvas>
+          </div>
+          <div class="chart-container" *ngIf="hasPermission(permissions.VIEW_INVENTORY_CHART)">
+            <h3 class="chart-title"><i class="fas fa-boxes"></i> Inventory Levels</h3>
+            <canvas #inventoryChart></canvas>
+          </div>
+        </div>
+      </div>
+  
+      <!-- CASHIER DASHBOARD - POS -->
+      <div class="section pos-section" *ngIf="hasPermission(permissions.VIEW_SALES_METRICS)">
+        <div class="section-header">
+          <h2 class="section-title">
+            <i class="fas fa-cash-register"></i>
+            <span>Point of Sale</span>
+          </h2>
+        </div>
+        <div class="section-content">
+          <div class="pos-interface">
+            <div class="pos-tables">
+              <h3 class="pos-subtitle">Active Tables</h3>
+              <div class="table-grid">
+                <div class="table-item available" *ngFor="let i of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]">
+                  <div class="table-number">{{i}}</div>
+                  <div class="table-status" *ngIf="i % 3 === 0">Open</div>
+                  <div class="table-status occupied" *ngIf="i % 3 === 1">Occupied</div>
+                  <div class="table-status bill" *ngIf="i % 3 === 2">Bill</div>
+                </div>
+              </div>
+            </div>
+            <div class="pos-actions">
+              <button class="pos-action-btn" *ngIf="hasPermission(permissions.PLACE_ORDER)">
+                <i class="fas fa-plus"></i>
+                <span>New Order</span>
+              </button>
+              <button class="pos-action-btn" *ngIf="hasPermission(permissions.VIEW_TRANSACTIONS)">
+                <i class="fas fa-receipt"></i>
+                <span>View Bills</span>
+              </button>
+              <button class="pos-action-btn" *ngIf="hasPermission(permissions.VIEW_CASH_DRAWER)">
+                <i class="fas fa-dollar-sign"></i>
+                <span>Cash Drawer</span>
+              </button>
+              <button class="pos-action-btn" *ngIf="hasPermission(permissions.PROCESS_PAYMENTS)">
+                <i class="fas fa-percent"></i>
+                <span>Discounts</span>
+              </button>
+              <button class="pos-action-btn">
+                <i class="fas fa-user-tag"></i>
+                <span>Customer</span>
+              </button>
+              <button class="pos-action-btn">
+                <i class="fas fa-calculator"></i>
+                <span>Calculator</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- CASHIER DASHBOARD - RECENT TRANSACTIONS -->
+      <div class="section transactions-section" *ngIf="hasPermission(permissions.VIEW_TRANSACTIONS)">
+        <div class="section-header" (click)="toggleSection('transactions')">
+          <h2 class="section-title">
+            <i class="fas fa-receipt"></i>
+            <span>Recent Transactions</span>
+          </h2>
+          <button class="toggle-button">
+            <i [class]="expandedSections['transactions'] ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+          </button>
+        </div>
+        <div class="section-content" [@expandCollapse]="expandedSections['transactions'] ? 'expanded' : 'collapsed'">
+          <div class="transactions-table">
+            <div class="table-header">
+              <div class="header-cell">Receipt #</div>
+              <div class="header-cell">Time</div>
+              <div class="header-cell">Customer</div>
+              <div class="header-cell">Table</div>
+              <div class="header-cell">Amount</div>
+              <div class="header-cell">Payment</div>
+              <div class="header-cell">Status</div>
+              <div class="header-cell">Actions</div>
+            </div>
+            <div class="table-body">
+              <div class="table-row" *ngFor="let order of completedOrders.slice(0, 6)">
+                <div class="cell">{{order.id}}</div>
+                <div class="cell">{{order.timestamp | date:'shortTime'}}</div>
+                <div class="cell">{{order.customerName}}</div>
+                <div class="cell">{{order.tableNumber || 'N/A'}}</div>
+                <div class="cell amount">${{order.totalAmount.toFixed(2)}}</div>
+                <div class="cell">
+                  <span class="payment-method" 
+                        [ngClass]="{'credit-card': order.id.endsWith('1') || order.id.endsWith('5'), 
+                                  'cash': order.id.endsWith('3') || order.id.endsWith('7'),
+                                  'mobile': order.id.endsWith('9')}">
+                    <i class="fas" 
+                       [ngClass]="{'fa-credit-card': order.id.endsWith('1') || order.id.endsWith('5'), 
+                                 'fa-money-bill-wave': order.id.endsWith('3') || order.id.endsWith('7'),
+                                 'fa-mobile-alt': order.id.endsWith('9')}"></i>
+                    {{order.id.endsWith('1') || order.id.endsWith('5') ? 'Card' : 
+                      order.id.endsWith('3') || order.id.endsWith('7') ? 'Cash' : 'Mobile'}}
+                  </span>
+                </div>
+                <div class="cell">
+                  <span class="payment-status" [class]="order.paymentStatus">
+                    {{order.paymentStatus}}
+                  </span>
+                </div>
+                <div class="cell actions">
+                  <button class="btn-icon" title="Print Receipt">
+                    <i class="fas fa-print"></i>
+                  </button>
+                  <button class="btn-icon" title="View Details" *ngIf="order.paymentStatus === 'paid'">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                  <button class="btn-icon danger" title="Refund" *ngIf="order.paymentStatus === 'paid' && hasPermission(permissions.PROCESS_PAYMENTS)">
+                    <i class="fas fa-undo"></i>
+                  </button>
+                  <button class="btn-icon success" title="Process Payment" 
+                         *ngIf="order.paymentStatus === 'pending' && hasPermission(permissions.PROCESS_PAYMENTS)"
+                         (click)="processPayment(order)">
+                    <i class="fas fa-check"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- CASHIER DASHBOARD - CASH DRAWER -->
+      <div class="section cash-drawer-section" *ngIf="hasPermission(permissions.VIEW_CASH_DRAWER)">
+        <div class="section-header" (click)="toggleSection('cashDrawer')">
+          <h2 class="section-title">
+            <i class="fas fa-money-check-alt"></i>
+            <span>Cash Drawer</span>
+          </h2>
+          <button class="toggle-button">
+            <i [class]="expandedSections['cashDrawer'] ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+          </button>
+        </div>
+        <div class="section-content" [@expandCollapse]="expandedSections['cashDrawer'] ? 'expanded' : 'collapsed'">
+          <div class="cash-drawer-summary">
+            <div class="summary-card">
+              <div class="summary-title">Starting Cash</div>
+              <div class="summary-value">$500.00</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-title">Cash Sales</div>
+              <div class="summary-value">$732.50</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-title">Cash Payments</div>
+              <div class="summary-value">$850.00</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-title">Cash Refunds</div>
+              <div class="summary-value">$25.00</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-title">Cash Withdrawals</div>
+              <div class="summary-value">$75.00</div>
+            </div>
+            <div class="summary-card total">
+              <div class="summary-title">Expected Total</div>
+              <div class="summary-value">$1,250.00</div>
+            </div>
+          </div>
+          <div class="cash-drawer-actions">
+            <button class="drawer-action-btn">
+              <i class="fas fa-calculator"></i>
+              <span>Count Cash</span>
+            </button>
+            <button class="drawer-action-btn" *ngIf="hasPermission(permissions.PROCESS_PAYMENTS)">
+              <i class="fas fa-money-bill-wave"></i>
+              <span>Add Cash</span>
+            </button>
+            <button class="drawer-action-btn" *ngIf="hasPermission(permissions.PROCESS_PAYMENTS)">
+              <i class="fas fa-hand-holding-usd"></i>
+              <span>Remove Cash</span>
+            </button>
+            <button class="drawer-action-btn">
+              <i class="fas fa-print"></i>
+              <span>Print Report</span>
+            </button>
+            <button class="drawer-action-btn important" *ngIf="hasPermission(permissions.PROCESS_PAYMENTS)">
+              <i class="fas fa-door-closed"></i>
+              <span>Close Drawer</span>
+            </button>
+          </div>
+        </div>
+      </div>
+  
+      <!-- SERVER DASHBOARD - TABLE LAYOUT -->
+      <div class="section tables-section" *ngIf="hasPermission(permissions.VIEW_TABLE_LAYOUT)">
+        <div class="section-header">
+          <h2 class="section-title">
+            <i class="fas fa-th"></i>
+            <span>Table Layout</span>
+          </h2>
+        </div>
+        <div class="section-content">
+          <div class="restaurant-layout">
+            <div class="layout-section dining">
+              <h3 class="layout-title">Main Dining Area</h3>
+              <div class="layout-tables">
+                <div class="layout-table" *ngFor="let i of [1, 2, 3, 4, 5, 6, 7, 8]"
+                     [class.available]="i % 4 === 0"
+                     [class.occupied]="i % 4 === 1"
+                     [class.reserved]="i % 4 === 2"
+                     [class.service-needed]="i % 4 === 3">
+                  <div class="table-number">{{i}}</div>
+                  <div class="table-status">
+                    <span *ngIf="i % 4 === 0">Available</span>
+                    <span *ngIf="i % 4 === 1">Occupied</span>
+                    <span *ngIf="i % 4 === 2">Reserved</span>
+                    <span *ngIf="i % 4 === 3">Needs Service</span>
+                  </div>
+                  <div class="table-details" *ngIf="i % 4 !== 0">
+                    <div class="table-guests" *ngIf="i % 4 === 1 || i % 4 === 3">
+                      <i class="fas fa-users"></i> {{i + 1}} guests
+                    </div>
+                    <div class="table-time" *ngIf="i % 4 === 1 || i % 4 === 3">
+                      <i class="fas fa-clock"></i> {{i % 4 === 1 ? '45' : '15'}} min
+                    </div>
+                    <div class="table-time" *ngIf="i % 4 === 2">
+                      <i class="fas fa-calendar-alt"></i> 7:30 PM
+                    </div>
+                  </div>
+                  <div class="table-actions">
+                    <button class="btn-table-action" *ngIf="i % 4 === 0 && hasPermission(permissions.MAKE_RESERVATION)">
+                      <i class="fas fa-plus"></i>
+                    </button>
+                    <button class="btn-table-action" *ngIf="i % 4 === 1 && hasPermission(permissions.VIEW_SERVER_ORDERS)">
+                      <i class="fas fa-utensils"></i>
+                    </button>
+                    <button class="btn-table-action attention" *ngIf="i % 4 === 3 && hasPermission(permissions.DELIVER_ORDERS)">
+                      <i class="fas fa-exclamation"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="layout-section bar">
+              <h3 class="layout-title">Bar Area</h3>
+              <div class="layout-tables">
+                <div class="layout-table bar-table" *ngFor="let i of [9, 10, 11, 12]"
+                     [class.available]="i % 4 === 0"
+                     [class.occupied]="i % 4 === 1 || i % 4 === 3"
+                     [class.reserved]="i % 4 === 2">
+                  <div class="table-number">B{{i - 8}}</div>
+                  <div class="table-status">
+                    <span *ngIf="i % 4 === 0">Available</span>
+                    <span *ngIf="i % 4 === 1 || i % 4 === 3">Occupied</span>
+                    <span *ngIf="i % 4 === 2">Reserved</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="layout-section patio">
+              <h3 class="layout-title">Patio</h3>
+              <div class="layout-tables">
+                <div class="layout-table patio-table" *ngFor="let i of [13, 14, 15, 16]"
+                     [class.available]="i % 2 === 0"
+                     [class.occupied]="i % 2 === 1">
+                  <div class="table-number">P{{i - 12}}</div>
+                  <div class="table-status">
+                    <span *ngIf="i % 2 === 0">Available</span>
+                    <span *ngIf="i % 2 === 1">Occupied</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- SERVER DASHBOARD - ACTIVE ORDERS -->
+      <div class="section active-orders-section" *ngIf="hasPermission(permissions.VIEW_SERVER_ORDERS)">
+        <div class="section-header" (click)="toggleSection('activeOrders')">
+          <h2 class="section-title">
+            <i class="fas fa-bell"></i>
+            <span>Active Orders</span>
+          </h2>
+          <div class="alert-badge" *ngIf="getReadyOrdersCount() > 0">
+            {{getReadyOrdersCount()}}
+          </div>
+          <button class="toggle-button">
+            <i [class]="expandedSections['activeOrders'] ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+          </button>
+        </div>
+        <div class="section-content" [@expandCollapse]="expandedSections['activeOrders'] ? 'expanded' : 'collapsed'">
+          <div class="order-tabs">
+            <button class="order-tab active">All ({{getActiveOrdersCount()}})</button>
+            <button class="order-tab">Ready ({{getReadyOrdersCount()}})</button>
+            <button class="order-tab">In Progress ({{getPreparingOrdersCount()}})</button>
+          </div>
+          <div class="active-orders">
+            <div class="server-order-card" *ngFor="let order of activeOrders.slice(0, 4)" [class]="order.status">
+              <div class="order-header">
+                <div class="order-table" *ngIf="order.tableNumber">Table {{order.tableNumber}}</div>
+                <div class="order-type" *ngIf="!order.tableNumber">{{order.orderType}}</div>
+                <div class="order-time">{{order.timestamp | date:'shortTime'}}</div>
+                <div class="order-status">{{order.status}}</div>
+              </div>
+              <div class="order-details">
+                <div class="order-items-list">
+                  <div class="order-item" *ngFor="let item of order.items">
+                    <div class="item-quantity">{{item.quantity}}x</div>
+                    <div class="item-name">{{item.name}}</div>
+                    <div class="item-status" *ngIf="item.status">
+                      <span class="status-indicator" [class]="item.status"></span>
+                      {{item.status}}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="order-footer" *ngIf="hasPermission(permissions.DELIVER_ORDERS)">
+                <button class="btn-deliver" *ngIf="order.status === 'ready'" 
+                        (click)="updateOrderStatus(order, 'delivered')">
+                  <i class="fas fa-check"></i> Deliver Order
+                </button>
+                <button class="btn-check" *ngIf="order.status === 'preparing'">
+                  <i class="fas fa-clock"></i> Check Status
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- SERVER DASHBOARD - CUSTOMER NOTES -->
+      <div class="section customer-notes-section" *ngIf="hasPermission(permissions.VIEW_CUSTOMER_NOTES)">
+        <div class="section-header" (click)="toggleSection('customerNotes')">
+          <h2 class="section-title">
+            <i class="fas fa-clipboard-list"></i>
+            <span>Customer Notes</span>
+          </h2>
+          <button class="toggle-button">
+            <i [class]="expandedSections['customerNotes'] ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+          </button>
+        </div>
+        <div class="section-content" [@expandCollapse]="expandedSections['customerNotes'] ? 'expanded' : 'collapsed'">
+          <div class="customer-notes">
+            <div class="note-card">
+              <div class="note-table">Table 3</div>
+              <div class="note-content">
+                <div class="note-type allergies">
+                  <i class="fas fa-exclamation-circle"></i> Allergies
+                </div>
+                <p>Customer has severe nut allergy. Ensure all dishes are prepared in a nut-free environment.</p>
+              </div>
+            </div>
+            <div class="note-card">
+              <div class="note-table">Table 7</div>
+              <div class="note-content">
+                <div class="note-type preferences">
+                  <i class="fas fa-heart"></i> Preferences
+                </div>
+                <p>Celebrating anniversary. Complimentary dessert approved by manager.</p>
+              </div>
+            </div>
+            <div class="note-card">
+              <div class="note-table">Table 5</div>
+              <div class="note-content">
+                <div class="note-type dietary">
+                  <i class="fas fa-leaf"></i> Dietary
+                </div>
+                <p>All guests at table are vegetarian. Suggest vegetarian wine pairings.</p>
+              </div>
+            </div>
+            <div class="note-card">
+              <div class="note-table">Table 8</div>
+              <div class="note-content">
+                <div class="note-type vip">
+                  <i class="fas fa-star"></i> VIP
+                </div>
+                <p>Local food critic. Alert manager when seated.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- BARTENDER DASHBOARD - DRINK QUEUE -->
+      <div class="section drink-queue-section" *ngIf="hasPermission(permissions.VIEW_DRINK_QUEUE)">
+        <div class="section-header">
+          <h2 class="section-title">
+            <i class="fas fa-glass-martini-alt"></i>
+            <span>Drink Queue</span>
+          </h2>
+        </div>
+        <div class="section-content">
+          <div class="drink-queue">
+            <div class="drink-category">
+              <h3 class="category-title">New Orders</h3>
+              <div class="drink-orders">
+                <div class="drink-order">
+                  <div class="order-header">
+                    <div class="order-label">Table 5</div>
+                    <div class="order-time">2 min ago</div>
+                  </div>
+                  <div class="drink-items">
+                    <div class="drink-item">
+                      <span class="drink-quantity">2x</span>
+                      <span class="drink-name">Mojito</span>
+                      <button class="btn-start" *ngIf="hasPermission(permissions.MANAGE_TABS)">Start</button>
+                    </div>
+                    <div class="drink-item">
+                      <span class="drink-quantity">1x</span>
+                      <span class="drink-name">Old Fashioned</span>
+                      <button class="btn-start" *ngIf="hasPermission(permissions.MANAGE_TABS)">Start</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="drink-order">
+                  <div class="order-header">
+                    <div class="order-label">Bar Seat 3</div>
+                    <div class="order-time">Just now</div>
+                  </div>
+                  <div class="drink-items">
+                    <div class="drink-item">
+                      <span class="drink-quantity">1x</span>
+                      <span class="drink-name">Margarita</span>
+                      <button class="btn-start" *ngIf="hasPermission(permissions.MANAGE_TABS)">Start</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="drink-category">
+              <h3 class="category-title">In Progress</h3>
+              <div class="drink-orders">
+                <div class="drink-order">
+                  <div class="order-header">
+                    <div class="order-label">Table 2</div>
+                    <div class="order-time">5 min ago</div>
+                  </div>
+                  <div class="drink-items">
+                    <div class="drink-item in-progress">
+                      <span class="drink-quantity">2x</span>
+                      <span class="drink-name">Cosmopolitan</span>
+                      <div class="drink-timer">1:30</div>
+                      <button class="btn-complete" *ngIf="hasPermission(permissions.MANAGE_TABS)">Complete</button>
+                    </div>
+                    <div class="drink-item in-progress">
+                      <span class="drink-quantity">1x</span>
+                      <span class="drink-name">Whiskey Sour</span>
+                      <div class="drink-timer">0:45</div>
+                      <button class="btn-complete" *ngIf="hasPermission(permissions.MANAGE_TABS)">Complete</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="drink-category">
+              <h3 class="category-title">Ready for Pickup</h3>
+              <div class="drink-orders">
+                <div class="drink-order">
+                  <div class="order-header">
+                    <div class="order-label">Table 8</div>
+                    <div class="order-time">8 min ago</div>
+                  </div>
+                  <div class="drink-items">
+                    <div class="drink-item completed">
+                      <span class="drink-quantity">4x</span>
+                      <span class="drink-name">Gin & Tonic</span>
+                      <button class="btn-deliver" *ngIf="hasPermission(permissions.DELIVER_ORDERS)">Deliver</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="drink-order">
+                  <div class="order-header">
+                    <div class="order-label">Bar Seat 5</div>
+                    <div class="order-time">3 min ago</div>
+                  </div>
+                  <div class="drink-items">
+                    <div class="drink-item completed">
+                      <span class="drink-quantity">1x</span>
+                      <span class="drink-name">Manhattan</span>
+                      <button class="btn-deliver" *ngIf="hasPermission(permissions.DELIVER_ORDERS)">Deliver</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- BARTENDER DASHBOARD - TABS MANAGEMENT -->
+      <div class="section tabs-section" *ngIf="hasPermission(permissions.VIEW_OPEN_TABS)">
+        <div class="section-header" (click)="toggleSection('tabs')">
+          <h2 class="section-title">
+            <i class="fas fa-receipt"></i>
+            <span>Open Tabs</span>
+          </h2>
+          <button class="toggle-button">
+            <i [class]="expandedSections['tabs'] ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+          </button>
+        </div>
+        <div class="section-content" [@expandCollapse]="expandedSections['tabs'] ? 'expanded' : 'collapsed'">
+          <div class="tab-grid">
+            <div class="tab-card">
+              <div class="tab-header">
+                <div class="tab-name">Alex Johnson</div>
+                <div class="tab-time">Started: 6:30 PM</div>
+              </div>
+              <div class="tab-items">
+                <div class="tab-item">
+                  <span class="item-quantity">2x</span>
+                  <span class="item-name">Gin & Tonic</span>
+                  <span class="item-price">$24.00</span>
+                </div>
+                <div class="tab-item">
+                  <span class="item-quantity">1x</span>
+                  <span class="item-name">Mojito</span>
+                  <span class="item-price">$14.00</span>
+                </div>
+              </div>
+              <div class="tab-footer">
+                <div class="tab-total">
+                  <span>Total:</span>
+                  <span class="total-amount">$38.00</span>
+                </div>
+                <div class="tab-actions" *ngIf="hasPermission(permissions.MANAGE_TABS)">
+                  <button class="btn-add">
+                    <i class="fas fa-plus"></i> Add
+                  </button>
+                  <button class="btn-close">
+                    <i class="fas fa-check"></i> Close
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="tab-card">
+              <div class="tab-header">
+                <div class="tab-name">Taylor Smith</div>
+                <div class="tab-time">Started: 7:15 PM</div>
+              </div>
+              <div class="tab-items">
+                <div class="tab-item">
+                  <span class="item-quantity">1x</span>
+                  <span class="item-name">Old Fashioned</span>
+                  <span class="item-price">$16.00</span>
+                </div>
+                <div class="tab-item">
+                  <span class="item-quantity">1x</span>
+                  <span class="item-name">Whiskey Neat</span>
+                  <span class="item-price">$12.00</span>
+                </div>
+              </div>
+              <div class="tab-footer">
+                <div class="tab-total">
+                  <span>Total:</span>
+                  <span class="total-amount">$28.00</span>
+                </div>
+                <div class="tab-actions" *ngIf="hasPermission(permissions.MANAGE_TABS)">
+                  <button class="btn-add">
+                    <i class="fas fa-plus"></i> Add
+                  </button>
+                  <button class="btn-close">
+                    <i class="fas fa-check"></i> Close
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="tab-card">
+              <div class="tab-header">
+                <div class="tab-name">Jamie Garcia</div>
+                <div class="tab-time">Started: 8:00 PM</div>
+              </div>
+              <div class="tab-items">
+                <div class="tab-item">
+                  <span class="item-quantity">2x</span>
+                  <span class="item-name">Margarita</span>
+                  <span class="item-price">$26.00</span>
+                </div>
+                <div class="tab-item">
+                  <span class="item-quantity">1x</span>
+                  <span class="item-name">Tequila Shot</span>
+                  <span class="item-price">$10.00</span>
+                </div>
+                <div class="tab-item">
+                  <span class="item-quantity">1x</span>
+                  <span class="item-name">Beer - IPA</span>
+                  <span class="item-price">$8.00</span>
+                </div>
+              </div>
+              <div class="tab-footer">
+                <div class="tab-total">
+                  <span>Total:</span>
+                  <span class="total-amount">$44.00</span>
+                </div>
+                <div class="tab-actions" *ngIf="hasPermission(permissions.MANAGE_TABS)">
+                  <button class="btn-add">
+                    <i class="fas fa-plus"></i> Add
+                  </button>
+                  <button class="btn-close">
+                    <i class="fas fa-check"></i> Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- BARTENDER DASHBOARD - COCKTAIL RECIPES -->
+      <div class="section recipes-section" *ngIf="hasPermission(permissions.VIEW_COCKTAIL_RECIPES)">
+        <div class="section-header" (click)="toggleSection('recipes')">
+          <h2 class="section-title">
+            <i class="fas fa-cocktail"></i>
+            <span>Cocktail Recipes</span>
+          </h2>
+          <button class="toggle-button">
+            <i [class]="expandedSections['recipes'] ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+          </button>
+        </div>
+        <div class="section-content" [@expandCollapse]="expandedSections['recipes'] ? 'expanded' : 'collapsed'">
+          <div class="recipe-search">
+            <div class="search-input">
+              <i class="fas fa-search"></i>
+              <input type="text" placeholder="Search for a cocktail...">
+            </div>
+            <div class="recipe-filters">
+              <button class="filter-btn active">All</button>
+              <button class="filter-btn">Popular</button>
+              <button class="filter-btn">Gin</button>
+              <button class="filter-btn">Vodka</button>
+              <button class="filter-btn">Whiskey</button>
+              <button class="filter-btn">Rum</button>
+              <button class="filter-btn">Tequila</button>
+            </div>
+          </div>
+          <div class="recipe-grid">
+            <div class="recipe-card">
+              <div class="recipe-image" style="background-image: url('/assets/images/mojito.jpg')"></div>
+              <div class="recipe-content">
+                <h3 class="recipe-name">Mojito</h3>
+                <div class="recipe-ingredients">
+                  <ul>
+                    <li>2 oz White Rum</li>
+                    <li>1 oz Fresh Lime Juice</li>
+                    <li>0.5 oz Simple Syrup</li>
+                    <li>6 Mint Leaves</li>
+                    <li>Soda Water</li>
+                  </ul>
+                </div>
+                <div class="recipe-popularity">
+                  <i class="fas fa-fire"></i> Popular
+                </div>
+              </div>
+            </div>
+            <div class="recipe-card">
+              <div class="recipe-image" style="background-image: url('/assets/images/old-fashioned.jpg')"></div>
+              <div class="recipe-content">
+                <h3 class="recipe-name">Old Fashioned</h3>
+                <div class="recipe-ingredients">
+                  <ul>
+                    <li>2 oz Bourbon</li>
+                    <li>1 Sugar Cube</li>
+                    <li>2-3 dashes Angostura Bitters</li>
+                    <li>Orange Peel</li>
+                  </ul>
+                </div>
+                <div class="recipe-popularity">
+                  <i class="fas fa-fire"></i> Popular
+                </div>
+              </div>
+            </div>
+            <div class="recipe-card">
+              <div class="recipe-image" style="background-image: url('/assets/images/margarita.jpg')"></div>
+              <div class="recipe-content">
+                <h3 class="recipe-name">Margarita</h3>
+                <div class="recipe-ingredients">
+                  <ul>
+                    <li>2 oz Tequila</li>
+                    <li>1 oz Cointreau</li>
+                    <li>1 oz Fresh Lime Juice</li>
+                    <li>Salt for Rim</li>
+                  </ul>
+                </div>
+                <div class="recipe-popularity">
+                  <i class="fas fa-fire"></i> Popular
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- MANAGER DASHBOARD - STAFF MANAGEMENT -->
+      <div class="section staff-section" *ngIf="hasPermission(permissions.VIEW_STAFF_METRICS)">
+        <div class="section-header" (click)="toggleSection('staff')">
+          <h2 class="section-title">
+            <i class="fas fa-users"></i>
+            <span>Staff on Duty</span>
+          </h2>
+          <button class="toggle-button">
+            <i [class]="expandedSections['staff'] ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+          </button>
+        </div>
+        <div class="section-content" [@expandCollapse]="expandedSections['staff'] ? 'expanded' : 'collapsed'">
+          <div class="staff-stats">
+            <div class="stat-card">
+              <div class="stat-icon">
+                <i class="fas fa-user-check"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value">{{getActiveStaffCount()}}</div>
+                <div class="stat-label">Active</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">
+                <i class="fas fa-coffee"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value">{{getOnBreakStaffCount()}}</div>
+                <div class="stat-label">On Break</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">
+                <i class="fas fa-user-clock"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value">{{getOffDutyStaffCount()}}</div>
+                <div class="stat-label">Off Duty</div>
+              </div>
+            </div>
+          </div>
+          <div class="staff-table">
+            <div class="table-header">
+              <div class="header-cell">Employee</div>
+              <div class="header-cell">Role</div>
+              <div class="header-cell">Shift</div>
+              <div class="header-cell">Status</div>
+              <div class="header-cell">Performance</div>
+              <div class="header-cell">Actions</div>
+            </div>
+            <div class="table-body">
+              <div class="table-row" *ngFor="let staff of staffMembers.slice(0, 5)">
+                <div class="cell">
+                  <div class="employee-info">
+                    <div class="employee-avatar">
+                      <span>{{getInitials(staff.name)}}</span>
+                    </div>
+                    <div class="employee-name">{{staff.name}}</div>
+                  </div>
+                </div>
+                <div class="cell">{{staff.role}}</div>
+                <div class="cell">{{staff.shift?.start}} - {{staff.shift?.end}}</div>
+                <div class="cell">
+                  <span class="status-badge" [class]="staff.status">
+                    <i class="fas" [ngClass]="{
+                      'fa-check-circle': staff.status === 'active',
+                      'fa-mug-hot': staff.status === 'on-break',
+                      'fa-times-circle': staff.status === 'off-duty'
+                    }"></i>
+                    {{staff.status}}
+                  </span>
+                </div>
+                <div class="cell">
+                  <div class="performance-meter">
+                    <div class="meter-bar">
+                      <div class="meter-fill" [style.width]="staff.performance + '%'" 
+                           [ngClass]="{
+                             'low': staff.performance && staff.performance < 75,
+                             'medium': staff.performance && staff.performance >= 75 && staff.performance < 90,
+                             'high': staff.performance && staff.performance >= 90
+                           }"></div>
+                    </div>
+                    <div class="meter-value">{{staff.performance}}%</div>
+                  </div>
+                </div>
+                <div class="cell">
+                  <div class="action-buttons" *ngIf="hasPermission(permissions.MANAGE_STAFF)">
+                    <button class="btn-icon" title="View Details">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn-icon" title="Edit">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-icon" title="Message">
+                      <i class="fas fa-comment"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- MANAGER DASHBOARD - RESERVATIONS OVERVIEW -->
+      <div class="section reservations-overview-section" *ngIf="hasPermission(permissions.VIEW_RESERVATIONS_OVERVIEW)">
+        <div class="section-header" (click)="toggleSection('reservationsOverview')">
+          <h2 class="section-title">
+            <i class="fas fa-calendar-alt"></i>
+            <span>Reservations Overview</span>
+          </h2>
+          <button class="toggle-button">
+            <i [class]="expandedSections['reservationsOverview'] ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+          </button>
+        </div>
+        <div class="section-content" [@expandCollapse]="expandedSections['reservationsOverview'] ? 'expanded' : 'collapsed'">
+          <div class="reservation-calendar">
+            <div class="calendar-header">
+              <button class="calendar-nav">
+                <i class="fas fa-chevron-left"></i>
+              </button>
+              <h3 class="calendar-title">{{currentDate | date:'MMMM yyyy'}}</h3>
+              <button class="calendar-nav">
+                <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+            <div class="calendar-view">
+              <div class="time-slots">
+                <div class="time-header">Time</div>
+                <div class="time-slot" *ngFor="let hour of [17, 18, 19, 20, 21]">
+                  {{hour}}:00
+                </div>
+              </div>
+              <div class="calendar-day" *ngFor="let day of [1, 2, 3, 4, 5]">
+                <div class="day-header">
+                  <div class="day-name">{{['Mon', 'Tue', 'Wed', 'Thu', 'Fri'][day-1]}}</div>
+                  <div class="day-date">{{day + 15}}</div>
+                </div>
+                <div class="day-slots">
+                  <div class="reservation-slot" *ngFor="let hour of [17, 18, 19, 20, 21]"
+                       [class.has-reservation]="(day + hour) % 3 === 0">
+                    <div class="slot-content" *ngIf="(day + hour) % 3 === 0">
+                      <div class="reservation-count">{{day + (hour % 3) + 2}}</div>
+                      <div class="slot-utilization" [style.width]="((day + (hour % 3) + 2) * 10) + '%'"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="upcoming-reservations">
+            <h3>Today's Reservations</h3>
+            <div class="reservation-list">
+              <div class="reservation-item" *ngFor="let reservation of reservations.slice(0, 3)">
+                <div class="reservation-time">{{reservation.time}}</div>
+                <div class="reservation-details">
+                  <div class="reservation-name">{{reservation.customerName}}</div>
+                  <div class="reservation-info">
+                    <span>{{reservation.guests}} guests</span>
+                    <span *ngIf="reservation.tableNumber">• Table {{reservation.tableNumber}}</span>
+                  </div>
+                </div>
+                <div class="reservation-status" [class]="reservation.status">
+                  {{reservation.status}}
+                </div>
+                <div class="reservation-actions" *ngIf="hasPermission(permissions.MAKE_RESERVATION)">
+                  <button class="btn-icon" title="View Details">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                  <button class="btn-icon" title="Edit" *ngIf="reservation.status !== 'completed'">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="btn-icon" title="Cancel" *ngIf="reservation.status === 'confirmed'">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- MANAGER DASHBOARD - SALES DASHBOARD -->
+      <div class="section sales-dashboard-section" *ngIf="hasPermission(permissions.VIEW_SALES_DASHBOARD)">
+        <div class="section-header" (click)="toggleSection('salesDashboard')">
+          <h2 class="section-title">
+            <i class="fas fa-chart-line"></i>
+            <span>Sales Dashboard</span>
+          </h2>
+          <button class="toggle-button">
+            <i [class]="expandedSections['salesDashboard'] ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+          </button>
+        </div>
+        <div class="section-content chart-grid" [@expandCollapse]="expandedSections['salesDashboard'] ? 'expanded' : 'collapsed'">
+          <div class="chart-container" *ngIf="hasPermission(permissions.VIEW_SALES_CHART)">
+            <h3 class="chart-title"><i class="fas fa-dollar-sign"></i> Daily Sales</h3>
+            <canvas id="salesDashboardChart"></canvas>
+          </div>
+          <div class="chart-container" *ngIf="hasPermission(permissions.VIEW_RESERVATIONS_CHART)">
+            <h3 class="chart-title"><i class="fas fa-calendar-check"></i> Reservations</h3>
+            <canvas id="salesDashboardReservationsChart"></canvas>
+          </div>
+          <div class="chart-container" *ngIf="hasPermission(permissions.VIEW_STAFF_CHART)">
+            <h3 class="chart-title"><i class="fas fa-user-check"></i> Staff Performance</h3>
+            <canvas id="salesDashboardStaffChart"></canvas>
+          </div>
+          <div class="chart-container" *ngIf="hasPermission(permissions.VIEW_INVENTORY_CHART)">
+            <h3 class="chart-title"><i class="fas fa-boxes"></i> Inventory Levels</h3>
+            <canvas id="salesDashboardInventoryChart"></canvas>
+          </div>
+        </div>
+      </div>
+  
+      <!-- MANAGER DASHBOARD - INVENTORY MANAGEMENT -->
+      <div class="section inventory-management-section" *ngIf="hasPermission(permissions.VIEW_INVENTORY_MANAGEMENT)">
+        <div class="section-header" (click)="toggleSection('inventoryManagement')">
+          <h2 class="section-title">
+            <i class="fas fa-box-open"></i>
+            <span>Inventory Management</span>
+          </h2>
+          <div class="alert-badge warning" *ngIf="getLowStockItemsCount() > 0">{{getLowStockItemsCount()}}</div>
+          <button class="toggle-button">
+            <i [class]="expandedSections['inventoryManagement'] ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+          </button>
+        </div>
+        <div class="section-content" [@expandCollapse]="expandedSections['inventoryManagement'] ? 'expanded' : 'collapsed'">
+          <div class="inventory-stats">
+            <div class="stat-card">
+              <div class="stat-icon">
+                <i class="fas fa-check-circle"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value">{{getOkStockItemsCount()}}</div>
+                <div class="stat-label">Optimal</div>
+              </div>
+            </div>
+            <div class="stat-card warning">
+              <div class="stat-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value">{{getLowStockItemsCount() - getCriticalStockItemsCount()}}</div>
+                <div class="stat-label">Low Stock</div>
+              </div>
+            </div>
+            <div class="stat-card danger">
+              <div class="stat-icon">
+                <i class="fas fa-times-circle"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value">{{getCriticalStockItemsCount()}}</div>
+                <div class="stat-label">Critical</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">
+                <i class="fas fa-arrow-up"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value">{{getOverstockedItemsCount()}}</div>
+                <div class="stat-label">Overstocked</div>
+              </div>
+            </div>
+          </div>
+          <div class="inventory-management">
+            <div class="inventory-filters">
+              <div class="search-input">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Search items...">
+              </div>
+              <div class="filter-buttons">
+                <button class="filter-button active">All</button>
+                <button class="filter-button danger">Critical</button>
+                <button class="filter-button warning">Low Stock</button>
+                <button class="filter-button">Overstocked</button>
+              </div>
+            </div>
+            <div class="inventory-table">
+              <div class="table-header">
+                <div class="header-cell">Item</div>
+                <div class="header-cell">Category</div>
+                <div class="header-cell">Current Stock</div>
+                <div class="header-cell">Min. Threshold</div>
+                <div class="header-cell">Status</div>
+                <div class="header-cell">Last Updated</div>
+                <div class="header-cell">Actions</div>
+              </div>
+              <div class="table-body">
+                <div class="table-row" *ngFor="let item of inventoryItems.slice(0, 5)" [class]="item.status">
+                  <div class="cell">{{item.name}}</div>
+                  <div class="cell">{{item.category}}</div>
+                  <div class="cell">{{item.currentStock}} {{item.unit}}</div>
+                  <div class="cell">{{item.minThreshold}} {{item.unit}}</div>
+                  <div class="cell">
+                    <span class="status-badge" [class]="item.status">
+                      <i class="fas" [ngClass]="{
+                        'fa-check-circle': item.status === 'ok',
+                        'fa-exclamation-triangle': item.status === 'low',
+                        'fa-times-circle': item.status === 'critical',
+                        'fa-arrow-up': item.status === 'overstocked'
+                      }"></i>
+                      {{item.status}}
+                    </span>
+                  </div>
+                  <div class="cell">{{item.lastUpdated | date:'MMM d'}}</div>
+                  <div class="cell">
+                    <div class="action-buttons" *ngIf="hasPermission(permissions.VIEW_INVENTORY_MANAGEMENT)">
+                      <button class="btn-icon" title="Update Stock">
+                        <i class="fas fa-plus"></i>
+                      </button>
+                      <button class="btn-icon" title="Order">
+                        <i class="fas fa-shopping-cart"></i>
+                      </button>
+                      <button class="btn-icon" title="History">
+                        <i class="fas fa-history"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- ADMIN DASHBOARD - SYSTEM OVERVIEW -->
+      <div class="section system-section" *ngIf="hasPermission(permissions.VIEW_SYSTEM_OVERVIEW)">
+        <div class="section-header">
+          <h2 class="section-title">
+            <i class="fas fa-server"></i>
+            <span>System Overview</span>
+          </h2>
+        </div>
+        <div class="section-content">
+          <div class="system-metrics">
+            <div class="metric-panel">
+              <div class="panel-header">
+                <h3>System Health</h3>
+                <div class="panel-status good">
+                  <i class="fas fa-check-circle"></i> Good
+                </div>
+              </div>
+              <div class="panel-body">
+                <div class="system-stat">
+                  <span class="stat-label">Uptime</span>
+                  <span class="stat-value">99.98%</span>
+                </div>
+                <div class="system-stat">
+                  <span class="stat-label">API Response Time</span>
+                  <span class="stat-value">230ms</span>
+                </div>
+                <div class="system-stat">
+                  <span class="stat-label">Database Status</span>
+                  <span class="stat-value">Optimal</span>
+                </div>
+                <div class="system-stat">
+                  <span class="stat-label">Last Backup</span>
+                  <span class="stat-value">Today 04:00 AM</span>
+                </div>
+              </div>
+              <div class="panel-footer">
+                <button class="btn-panel">
+                  <i class="fas fa-chart-line"></i> View Details
+                </button>
+              </div>
+            </div>
+            <div class="metric-panel">
+              <div class="panel-header">
+                <h3>Active Users</h3>
+                <div class="panel-count">24</div>
+              </div>
+              <div class="panel-body">
+                <div class="user-roles-chart">
+                  <div class="role-bar">
+                    <span class="role-label">Managers</span>
+                    <div class="role-progress">
+                      <div class="role-fill" style="width: 12.5%"></div>
+                    </div>
+                    <span class="role-count">3</span>
+                  </div>
+                  <div class="role-bar">
+                    <span class="role-label">Servers</span>
+                    <div class="role-progress">
+                      <div class="role-fill" style="width: 33.3%"></div>
+                    </div>
+                    <span class="role-count">8</span>
+                  </div>
+                  <div class="role-bar">
+                    <span class="role-label">Chefs</span>
+                    <div class="role-progress">
+                      <div class="role-fill" style="width: 20.8%"></div>
+                    </div>
+                    <span class="role-count">5</span>
+                  </div>
+                  <div class="role-bar">
+                    <span class="role-label">Bartenders</span>
+                    <div class="role-progress">
+                      <div class="role-fill" style="width: 16.7%"></div>
+                    </div>
+                    <span class="role-count">4</span>
+                  </div>
+                  <div class="role-bar">
+                    <span class="role-label">Cashiers</span>
+                    <div class="role-progress">
+                      <div class="role-fill" style="width: 16.7%"></div>
+                    </div>
+                    <span class="role-count">4</span>
+                  </div>
+                </div>
+              </div>
+              <div class="panel-footer">
+                <button class="btn-panel" *ngIf="hasPermission(permissions.MANAGE_SYSTEM)">
+                  <i class="fas fa-users"></i> Manage Users
+                </button>
+              </div>
+            </div>
+            <div class="metric-panel">
+              <div class="panel-header">
+                <h3>System Alerts</h3>
+                <div class="panel-alert-count">3</div>
+              </div>
+              <div class="panel-body">
+                <div class="alert-list">
+                  <div class="alert-item warning">
+                    <div class="alert-icon">
+                      <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="alert-content">
+                      <div class="alert-title">Payment Gateway Warning</div>
+                      <div class="alert-message">Intermittent delays in payment processing.</div>
+                      <div class="alert-time">30 minutes ago</div>
+                    </div>
+                  </div>
+                  <div class="alert-item info">
+                    <div class="alert-icon">
+                      <i class="fas fa-info-circle"></i>
+                    </div>
+                    <div class="alert-content">
+                      <div class="alert-title">System Update Available</div>
+                      <div class="alert-message">Version 2.5.1 ready to install.</div>
+                      <div class="alert-time">2 hours ago</div>
+                    </div>
+                  </div>
+                  <div class="alert-item success">
+                    <div class="alert-icon">
+                      <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="alert-content">
+                      <div class="alert-title">Database Backup Complete</div>
+                      <div class="alert-message">Daily backup completed successfully.</div>
+                      <div class="alert-time">4 hours ago</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="panel-footer">
+                <button class="btn-panel">
+                  <i class="fas fa-bell"></i> View All Alerts
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- ADMIN DASHBOARD - MENU CONFIGURATION -->
+      <div class="section menu-config-section" *ngIf="hasPermission(permissions.VIEW_MENU_CONFIG)">
+        <div class="section-header" (click)="toggleSection('menuConfig')">
+          <h2 class="section-title">
+            <i class="fas fa-utensils"></i>
+            <span>Menu Configuration</span>
+          </h2>
+          <button class="toggle-button">
+            <i [class]="expandedSections['menuConfig'] ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+          </button>
+        </div>
+        <div class="section-content" [@expandCollapse]="expandedSections['menuConfig'] ? 'expanded' : 'collapsed'">
+          <div class="menu-categories">
+            <div class="category-card">
+              <div class="category-title">Appetizers</div>
+              <div class="category-stats">
+                <div class="category-stat">
+                  <span class="stat-label">Items</span>
+                  <span class="stat-value">12</span>
+                </div>
+                <div class="category-stat">
+                  <span class="stat-label">Active</span>
+                  <span class="stat-value">10</span>
+                </div>
+              </div>
+              <div class="category-actions">
+                <button class="btn-view">
+                  <i class="fas fa-eye"></i> View
+                </button>
+                <button class="btn-edit" *ngIf="hasPermission(permissions.MANAGE_SYSTEM)">
+                  <i class="fas fa-edit"></i> Edit
+                </button>
+              </div>
+            </div>
+            <div class="category-card">
+              <div class="category-title">Main Course</div>
+              <div class="category-stats">
+                <div class="category-stat">
+                  <span class="stat-label">Items</span>
+                  <span class="stat-value">18</span>
+                </div>
+                <div class="category-stat">
+                  <span class="stat-label">Active</span>
+                  <span class="stat-value">18</span>
+                </div>
+              </div>
+              <div class="category-actions">
+                <button class="btn-view">
+                  <i class="fas fa-eye"></i> View
+                </button>
+                <button class="btn-edit" *ngIf="hasPermission(permissions.MANAGE_SYSTEM)">
+                  <i class="fas fa-edit"></i> Edit
+                </button>
+              </div>
+            </div>
+            <div class="category-card">
+              <div class="category-title">Desserts</div>
+              <div class="category-stats">
+                <div class="category-stat">
+                  <span class="stat-label">Items</span>
+                  <span class="stat-value">8</span>
+                </div>
+                <div class="category-stat">
+                  <span class="stat-label">Active</span>
+                  <span class="stat-value">7</span>
+                </div>
+              </div>
+              <div class="category-actions">
+                <button class="btn-view">
+                  <i class="fas fa-eye"></i> View
+                </button>
+                <button class="btn-edit" *ngIf="hasPermission(permissions.MANAGE_SYSTEM)">
+                  <i class="fas fa-edit"></i> Edit
+                </button>
+              </div>
+            </div>
+            <div class="category-card">
+              <div class="category-title">Beverages</div>
+              <div class="category-stats">
+                <div class="category-stat">
+                  <span class="stat-label">Items</span>
+                  <span class="stat-value">15</span>
+                </div>
+                <div class="category-stat">
+                  <span class="stat-label">Active</span>
+                  <span class="stat-value">14</span>
+                </div>
+              </div>
+              <div class="category-actions">
+                <button class="btn-view">
+                  <i class="fas fa-eye"></i> View
+                </button>
+                <button class="btn-edit" *ngIf="hasPermission(permissions.MANAGE_SYSTEM)">
+                  <i class="fas fa-edit"></i> Edit
+                </button>
+              </div>
+            </div>
+            <div class="category-card add-category" *ngIf="hasPermission(permissions.MANAGE_SYSTEM)">
+              <i class="fas fa-plus-circle"></i>
+              <span>Add New Category</span>
+            </div>
+          </div>
+          <div class="menu-actions" *ngIf="hasPermission(permissions.MANAGE_SYSTEM)">
+            <button class="menu-action-btn">
+              <i class="fas fa-plus"></i>
+              <span>Add Item</span>
+            </button>
+            <button class="menu-action-btn">
+              <i class="fas fa-tags"></i>
+              <span>Special Offers</span>
+            </button>
+            <button class="menu-action-btn">
+              <i class="fas fa-print"></i>
+              <span>Print Menu</span>
+            </button>
+            <button class="menu-action-btn">
+              <i class="fas fa-globe"></i>
+              <span>Publish Changes</span>
+            </button>
+          </div>
+        </div>
+      </div>
+  
+      <!-- ADMIN DASHBOARD - PAYMENT CONFIGURATION -->
+      <div class="section payment-config-section" *ngIf="hasPermission(permissions.VIEW_PAYMENT_CONFIG)">
+        <div class="section-header" (click)="toggleSection('paymentConfig')">
+          <h2 class="section-title">
+            <i class="fas fa-credit-card"></i>
+            <span>Payment Configuration</span>
+          </h2>
+          <button class="toggle-button">
+            <i [class]="expandedSections['paymentConfig'] ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+          </button>
+        </div>
+        <div class="section-content" [@expandCollapse]="expandedSections['paymentConfig'] ? 'expanded' : 'collapsed'">
+          <div class="payment-methods">
+            <div class="method-card active">
+              <div class="method-icon">
+                <i class="fas fa-credit-card"></i>
+              </div>
+              <div class="method-content">
+                <div class="method-name">Credit/Debit Cards</div>
+                <div class="method-status">Active</div>
+                <div class="method-provider">Processor: Stripe</div>
+              </div>
+              <div class="method-toggle" *ngIf="hasPermission(permissions.MANAGE_SYSTEM)">
+                <label class="toggle">
+                  <input type="checkbox" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+            <div class="method-card active">
+              <div class="method-icon">
+                <i class="fas fa-money-bill-wave"></i>
+              </div>
+              <div class="method-content">
+                <div class="method-name">Cash</div>
+                <div class="method-status">Active</div>
+                <div class="method-provider">Internal Processing</div>
+              </div>
+              <div class="method-toggle" *ngIf="hasPermission(permissions.MANAGE_SYSTEM)">
+                <label class="toggle">
+                  <input type="checkbox" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+            <div class="method-card active">
+              <div class="method-icon">
+                <i class="fas fa-mobile-alt"></i>
+              </div>
+              <div class="method-content">
+                <div class="method-name">Mobile Payments</div>
+                <div class="method-status">Active</div>
+                <div class="method-provider">Apple Pay, Google Pay</div>
+              </div>
+              <div class="method-toggle" *ngIf="hasPermission(permissions.MANAGE_SYSTEM)">
+                <label class="toggle">
+                  <input type="checkbox" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+            <div class="method-card inactive">
+              <div class="method-icon">
+                <i class="fas fa-gift"></i>
+              </div>
+              <div class="method-content">
+                <div class="method-name">Gift Cards</div>
+                <div class="method-status">Inactive</div>
+                <div class="method-provider">Not Configured</div>
+              </div>
+              <div class="method-toggle" *ngIf="hasPermission(permissions.MANAGE_SYSTEM)">
+                <label class="toggle">
+                  <input type="checkbox">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="tax-configuration">
+            <h3 class="config-title">Tax & Fees Configuration</h3>
+            <div class="tax-settings">
+              <div class="tax-item">
+                <div class="tax-name">Sales Tax</div>
+                <div class="tax-value">8.5%</div>
+                <button class="btn-edit" *ngIf="hasPermission(permissions.MANAGE_SYSTEM)">
+                  <i class="fas fa-edit"></i>
+                </button>
+              </div>
+              <div class="tax-item">
+                <div class="tax-name">Service Fee</div>
+                <div class="tax-value">3.0%</div>
+                <button class="btn-edit" *ngIf="hasPermission(permissions.MANAGE_SYSTEM)">
+                  <i class="fas fa-edit"></i>
+                </button>
+              </div>
+              <div class="tax-item">
+                <div class="tax-name">Gratuity (Parties of 6+)</div>
+                <div class="tax-value">18.0%</div>
+                <button class="btn-edit" *ngIf="hasPermission(permissions.MANAGE_SYSTEM)">
+                  <i class="fas fa-edit"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- SUPERADMIN DASHBOARD - MULTI-LOCATION OVERVIEW -->
+      <div class="section multi-location-section" *ngIf="hasPermission(permissions.VIEW_MULTI_LOCATION)">
+        <div class="section-header">
+          <h2 class="section-title">
+            <i class="fas fa-globe"></i>
+            <span>Multi-Location Overview</span>
+          </h2>
+        </div>
+        <div class="section-content">
+          <div class="location-map">
+            <div class="map-container">
+              <!-- This would be a real map in production -->
+              <div class="placeholder-map">
+                <div class="map-marker" style="top: 35%; left: 25%;" title="Downtown">
+                  <i class="fas fa-map-marker-alt"></i>
+                  <span class="marker-label">Downtown</span>
+                </div>
+                <div class="map-marker" style="top: 25%; left: 60%;" title="Uptown">
+                  <i class="fas fa-map-marker-alt"></i>
+                  <span class="marker-label">Uptown</span>
+                </div>
+                <div class="map-marker" style="top: 65%; left: 40%;" title="Riverside">
+                  <i class="fas fa-map-marker-alt"></i>
+                  <span class="marker-label">Riverside</span>
+                </div>
+                <div class="map-marker" style="top: 50%; left: 80%;" title="Eastside">
+                  <i class="fas fa-map-marker-alt"></i>
+                  <span class="marker-label">Eastside</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="location-metrics">
+            <div class="location-card">
+              <div class="location-header">
+                <h3 class="location-name">Downtown</h3>
+                <div class="location-status success">
+                  <i class="fas fa-circle"></i> Operating
+                </div>
+              </div>
+              <div class="location-stats">
+                <div class="location-stat">
+                  <div class="stat-value">$58,750</div>
+                  <div class="stat-label">Revenue This Week</div>
+                </div>
+                <div class="location-stat">
+                  <div class="stat-value">+12.5%</div>
+                  <div class="stat-label">YoY Growth</div>
+                </div>
+                <div class="location-stat">
+                  <div class="stat-value">92%</div>
+                  <div class="stat-label">Satisfaction</div>
+                </div>
+              </div>
+            </div>
+            <div class="location-card">
+              <div class="location-header">
+                <h3 class="location-name">Uptown</h3>
+                <div class="location-status success">
+                  <i class="fas fa-circle"></i> Operating
+                </div>
+              </div>
+              <div class="location-stats">
+                <div class="location-stat">
+                  <div class="stat-value">$42,180</div>
+                  <div class="stat-label">Revenue This Week</div>
+                </div>
+                <div class="location-stat">
+                  <div class="stat-value">+8.3%</div>
+                  <div class="stat-label">YoY Growth</div>
+                </div>
+                <div class="location-stat">
+                  <div class="stat-value">89%</div>
+                  <div class="stat-label">Satisfaction</div>
+                </div>
+              </div>
+            </div>
+            <div class="location-card">
+              <div class="location-header">
+                <h3 class="location-name">Riverside</h3>
+                <div class="location-status success">
+                  <i class="fas fa-circle"></i> Operating
+                </div>
+              </div>
+              <div class="location-stats">
+                <div class="location-stat">
+                  <div class="stat-value">$28,950</div>
+                  <div class="stat-label">Revenue This Week</div>
+                </div>
+                <div class="location-stat">
+                  <div class="stat-value">+15.2%</div>
+                  <div class="stat-label">YoY Growth</div>
+                </div>
+                <div class="location-stat">
+                  <div class="stat-value">94%</div>
+                  <div class="stat-label">Satisfaction</div>
+                </div>
+              </div>
+            </div>
+            <div class="location-card">
+              <div class="location-header">
+                <h3 class="location-name">Eastside</h3>
+                <div class="location-status warning">
+                  <i class="fas fa-circle"></i> Maintenance
+                </div>
+              </div>
+              <div class="location-stats">
+                <div class="location-stat">
+                  <div class="stat-value">$12,970</div>
+                  <div class="stat-label">Revenue This Week</div>
+                </div>
+                <div class="location-stat">
+                  <div class="stat-value">-2.8%</div>
+                  <div class="stat-label">YoY Growth</div>
+                </div>
+                <div class="location-stat">
+                  <div class="stat-value">81%</div>
+                  <div class="stat-label">Satisfaction</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- SUPERADMIN DASHBOARD - FRANCHISE MANAGEMENT -->
+      <div class="section franchise-section" *ngIf="hasPermission(permissions.VIEW_FRANCHISE_MANAGEMENT)">
+        <div class="section-header" (click)="toggleSection('franchise')">
+          <h2 class="section-title">
+            <i class="fas fa-store"></i>
+            <span>Franchise Management</span>
+          </h2>
+          <button class="toggle-button">
+            <i [class]="expandedSections['franchise'] ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+          </button>
+        </div>
+        <div class="section-content" [@expandCollapse]="expandedSections['franchise'] ? 'expanded' : 'collapsed'">
+          <div class="franchise-metrics">
+            <div class="metric-panel">
+              <div class="panel-header">
+                <h3>Franchise Performance</h3>
+              </div>
+              <div class="panel-body">
+                <div class="performance-chart">
+                  <div class="performance-row">
+                    <div class="location-name">Downtown</div>
+                    <div class="performance-bar">
+                      <div class="performance-fill" style="width: 92%"></div>
+                      <span class="performance-value">92%</span>
+                    </div>
+                  </div>
+                  <div class="performance-row">
+                    <div class="location-name">Uptown</div>
+                    <div class="performance-bar">
+                      <div class="performance-fill" style="width: 89%"></div>
+                      <span class="performance-value">89%</span>
+                    </div>
+                  </div>
+                  <div class="performance-row">
+                    <div class="location-name">Riverside</div>
+                    <div class="performance-bar">
+                      <div class="performance-fill" style="width: 94%"></div>
+                      <span class="performance-value">94%</span>
+                    </div>
+                  </div>
+                  <div class="performance-row">
+                    <div class="location-name">Eastside</div>
+                    <div class="performance-bar">
+                      <div class="performance-fill" style="width: 81%"></div>
+                      <span class="performance-value">81%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="panel-footer">
+                <button class="btn-panel">
+                  <i class="fas fa-chart-line"></i> Performance Details
+                </button>
+              </div>
+            </div>
+            <div class="metric-panel">
+              <div class="panel-header">
+                <h3>Consistency Score</h3>
+              </div>
+              <div class="panel-body">
+                <div class="consistency-metrics">
+                  <div class="consistency-category">
+                    <div class="category-name">Food Quality</div>
+                    <div class="category-score">
+                      <div class="score-indicator high"></div>
+                      <div class="score-value">4.8/5</div>
+                    </div>
+                  </div>
+                  <div class="consistency-category">
+                    <div class="category-name">Service</div>
+                    <div class="category-score">
+                      <div class="score-indicator high"></div>
+                      <div class="score-value">4.7/5</div>
+                    </div>
+                  </div>
+                  <div class="consistency-category">
+                    <div class="category-name">Menu Adherence</div>
+                    <div class="category-score">
+                      <div class="score-indicator high"></div>
+                      <div class="score-value">98%</div>
+                    </div>
+                  </div>
+                  <div class="consistency-category">
+                    <div class="category-name">Wait Times</div>
+                    <div class="category-score">
+                      <div class="score-indicator medium"></div>
+                      <div class="score-value">4.2/5</div>
+                    </div>
+                  </div>
+                  <div class="consistency-category">
+                    <div class="category-name">Brand Standards</div>
+                    <div class="category-score">
+                      <div class="score-indicator high"></div>
+                      <div class="score-value">96%</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="panel-footer">
+                <button class="btn-panel">
+                  <i class="fas fa-tasks"></i> Standards Assessment
+                </button>
+              </div>
+            </div>
+            <div class="metric-panel">
+              <div class="panel-header">
+                <h3>Expansion Opportunities</h3>
+              </div>
+              <div class="panel-body">
+                <div class="opportunity-list">
+                  <div class="opportunity-item high">
+                    <div class="opportunity-location">Westside</div>
+                    <div class="opportunity-score">
+                      <div class="score-stars">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                      </div>
+                      <div class="score-label">High Potential</div>
+                    </div>
+                  </div>
+                  <div class="opportunity-item medium">
+                    <div class="opportunity-location">Northside</div>
+                    <div class="opportunity-score">
+                      <div class="score-stars">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="far fa-star"></i>
+                      </div>
+                      <div class="score-label">Medium Potential</div>
+                    </div>
+                  </div>
+                  <div class="opportunity-item medium">
+                    <div class="opportunity-location">Southside</div>
+                    <div class="opportunity-score">
+                      <div class="score-stars">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="far fa-star"></i>
+                      </div>
+                      <div class="score-label">Medium Potential</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="panel-footer">
+                <button class="btn-panel">
+                  <i class="fas fa-search-location"></i> Market Analysis
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- SUPERADMIN DASHBOARD - GLOBAL SETTINGS -->
+      <div class="section global-settings-section" *ngIf="hasPermission(permissions.VIEW_GLOBAL_SETTINGS)">
+        <div class="section-header" (click)="toggleSection('globalSettings')">
+          <h2 class="section-title">
+            <i class="fas fa-cogs"></i>
+            <span>Global Settings</span>
+          </h2>
+          <button class="toggle-button">
+            <i [class]="expandedSections['globalSettings'] ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+          </button>
+        </div>
+        <div class="section-content" [@expandCollapse]="expandedSections['globalSettings'] ? 'expanded' : 'collapsed'">
+          <div class="settings-grid">
+            <div class="settings-card">
+              <div class="settings-icon">
+                <i class="fas fa-shield-alt"></i>
+              </div>
+              <div class="settings-content">
+                <h3 class="settings-title">Security & Permissions</h3>
+                <p class="settings-description">Configure global security policies and role permissions</p>
+              </div>
+              <button class="settings-btn">
+                <i class="fas fa-angle-right"></i>
+              </button>
+            </div>
+            <div class="settings-card">
+              <div class="settings-icon">
+                <i class="fas fa-coins"></i>
+              </div>
+              <div class="settings-content">
+                <h3 class="settings-title">Global Pricing</h3>
+                <p class="settings-description">Manage pricing strategies and special promotions</p>
+              </div>
+              <button class="settings-btn">
+                <i class="fas fa-angle-right"></i>
+              </button>
+            </div>
+            <div class="settings-card">
+              <div class="settings-icon">
+                <i class="fas fa-calendar-week"></i>
+              </div>
+              <div class="settings-content">
+                <h3 class="settings-title">Operating Hours</h3>
+                <p class="settings-description">Set default hours and holiday schedules</p>
+              </div>
+              <button class="settings-btn">
+                <i class="fas fa-angle-right"></i>
+              </button>
+            </div>
+            <div class="settings-card">
+              <div class="settings-icon">
+                <i class="fas fa-palette"></i>
+              </div>
+              <div class="settings-content">
+                <h3 class="settings-title">Brand Standards</h3>
+                <p class="settings-description">Brand guidelines and visual identity management</p>
+              </div>
+              <button class="settings-btn">
+                <i class="fas fa-angle-right"></i>
+              </button>
+            </div>
+            <div class="settings-card">
+              <div class="settings-icon">
+                <i class="fas fa-globe-americas"></i>
+              </div>
+              <div class="settings-content">
+                <h3 class="settings-title">Localization</h3>
+                <p class="settings-description">Language, currency, and regional settings</p>
+              </div>
+              <button class="settings-btn">
+                <i class="fas fa-angle-right"></i>
+              </button>
+            </div>
+            <div class="settings-card">
+              <div class="settings-icon">
+                <i class="fas fa-sync-alt"></i>
+              </div>
+              <div class="settings-content">
+                <h3 class="settings-title">System Updates</h3>
+                <p class="settings-description">Release management and update scheduling</p>
+              </div>
+              <button class="settings-btn">
+                <i class="fas fa-angle-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- SUPERADMIN DASHBOARD - BUSINESS INTELLIGENCE -->
+      <div class="section business-intelligence-section" *ngIf="hasPermission(permissions.VIEW_BUSINESS_INTELLIGENCE)">
+        <div class="section-header" (click)="toggleSection('businessIntelligence')">
+          <h2 class="section-title">
+            <i class="fas fa-brain"></i>
+            <span>Business Intelligence</span>
+          </h2>
+          <button class="toggle-button">
+            <i [class]="expandedSections['businessIntelligence'] ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+          </button>
+        </div>
+        <div class="section-content chart-grid" [@expandCollapse]="expandedSections['businessIntelligence'] ? 'expanded' : 'collapsed'">
+          <div class="chart-container full-width" *ngIf="hasPermission(permissions.VIEW_SALES_CHART)">
+            <h3 class="chart-title"><i class="fas fa-chart-area"></i> Multi-Location Performance</h3>
+            <canvas id="biMultiLocationChart"></canvas>
+          </div>
+          <div class="chart-container" *ngIf="hasPermission(permissions.VIEW_ORDERS_CHART)">
+            <h3 class="chart-title"><i class="fas fa-users"></i> Customer Demographics</h3>
+            <canvas id="biDemographicsChart"></canvas>
+          </div>
+          <div class="chart-container" *ngIf="hasPermission(permissions.VIEW_RESERVATIONS_CHART)">
+            <h3 class="chart-title"><i class="fas fa-calendar-alt"></i> Seasonal Trends</h3>
+            <canvas id="biSeasonalTrendsChart"></canvas>
+          </div>
+          <div class="chart-container" *ngIf="hasPermission(permissions.VIEW_POPULAR_ITEMS_CHART)">
+            <h3 class="chart-title"><i class="fas fa-utensils"></i> Menu Popularity</h3>
+            <canvas id="biMenuPopularityChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  

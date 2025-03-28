@@ -1,0 +1,196 @@
+<div class="sidebar-overlay" *ngIf="isExpanded" (click)="closeSidebar()" aria-hidden="true"></div>
+<aside class="sidebar" [class.expanded]="isExpanded" role="navigation" aria-label="Dashboard navigation">
+    <div class="sidebar-header">
+        <!-- <img [src]="logoPath" alt="RestroRealm" class="logo" /> -->
+        <!-- <button class="toggle-btn" (click)="toggleSidebar()" aria-label="Toggle sidebar" title="Toggle sidebar">
+            <i class="fas fa-chevron-left" *ngIf="isExpanded"></i>
+            <i class="fas fa-chevron-right" *ngIf="!isExpanded"></i>
+        </button> -->
+    </div>
+
+    <div class="sidebar-inner">
+        <div class="sidebar-content">
+            <div class="user-panel" *ngIf="isExpanded">
+                <div class="user-info">
+                    <div class="avatar-container">
+                        <ng-container *ngIf="user?.profilePicture; else initialsTemplate">
+                            <img [src]="user?.profilePicture" [alt]="'Avatar for ' + (user?.name || 'user')" class="avatar" />
+                        </ng-container>
+                        <ng-template #initialsTemplate>
+                            <div class="avatar initials-avatar">
+                                {{ getUserInitials() }}
+                            </div>
+                        </ng-template>
+                    </div>
+                    <div class="user-details">
+                        <span class="user-name">{{ user?.name || 'Guest' }}</span>
+                        <span class="user-role">{{ user?.roleName || 'User' }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="menu-section">
+                <div class="section-title" *ngIf="isExpanded">MAIN MENU</div>
+
+                <nav class="nav-menu">
+                    <a routerLink="/dashboard" 
+                       routerLinkActive="active" 
+                       class="nav-item" 
+                       [tabindex]="isExpanded ? 0 : -1"
+                       title="Dashboard">
+                        <i class="fas fa-home" aria-hidden="true"></i>
+                        <span *ngIf="isExpanded" class="menu-title">Dashboard</span>
+                        <span class="sr-only">Dashboard</span>
+                    </a>
+
+                    <a *ngIf="readAllOrders" 
+                       routerLink="/orders" 
+                       routerLinkActive="active" 
+                       class="nav-item"
+                       [tabindex]="isExpanded ? 0 : -1"
+                       title="Orders">
+                        <i class="fas fa-receipt" aria-hidden="true"></i>
+                        <span *ngIf="isExpanded" class="menu-title">Orders</span>
+                        <span class="sr-only">Orders</span>
+                    </a>
+
+                    <a *ngIf="readAllMenuItems" 
+                       routerLink="/settings/menu" 
+                       routerLinkActive="active" 
+                       class="nav-item"
+                       [tabindex]="isExpanded ? 0 : -1"
+                       title="Menu">
+                        <i class="fas fa-utensils" aria-hidden="true"></i>
+                        <span *ngIf="isExpanded" class="menu-title">Menu</span>
+                        <span class="sr-only">Menu</span>
+                    </a>
+
+                    <a *ngIf="readAllTables" 
+                       routerLink="/tables" 
+                       routerLinkActive="active" 
+                       class="nav-item"
+                       [tabindex]="isExpanded ? 0 : -1"
+                       title="Tables">
+                        <i class="fas fa-chair" aria-hidden="true"></i>
+                        <span *ngIf="isExpanded" class="menu-title">Tables</span>
+                        <span class="sr-only">Tables</span>
+                    </a>
+                </nav>
+            </div>
+
+            <div class="menu-section" *ngIf="readAllReservations">
+                <div class="section-title" *ngIf="isExpanded">RESERVATIONS</div>
+
+                <nav class="nav-menu">
+                    <a routerLink="/all-reservations" 
+                       routerLinkActive="active" 
+                       class="nav-item"
+                       [tabindex]="isExpanded ? 0 : -1"
+                       title="All Reservations">
+                        <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+                        <span *ngIf="isExpanded" class="menu-title">All Reservations</span>
+                        <span class="sr-only">All Reservations</span>
+                    </a>
+
+                    <a routerLink="/my-reservations" 
+                       routerLinkActive="active" 
+                       class="nav-item"
+                       [tabindex]="isExpanded ? 0 : -1"
+                       title="My Reservations">
+                        <i class="fas fa-calendar-check" aria-hidden="true"></i>
+                        <span *ngIf="isExpanded" class="menu-title">My Reservations</span>
+                        <span class="sr-only">My Reservations</span>
+                    </a>
+                </nav>
+            </div>
+
+            <div class="menu-section">
+                <div class="section-title" *ngIf="isExpanded">MANAGEMENT</div>
+
+                <nav class="nav-menu">
+                    <a *ngIf="readAllKitchenOrders" 
+                       routerLink="/kitchen" 
+                       routerLinkActive="active" 
+                       class="nav-item"
+                       [tabindex]="isExpanded ? 0 : -1"
+                       title="Kitchen">
+                        <i class="fas fa-fire" aria-hidden="true"></i>
+                        <span *ngIf="isExpanded" class="menu-title">Kitchen</span>
+                        <span class="sr-only">Kitchen</span>
+                    </a>
+
+                    <a *ngIf="readAllStaff" 
+                       routerLink="/staff" 
+                       routerLinkActive="active" 
+                       class="nav-item"
+                       [tabindex]="isExpanded ? 0 : -1"
+                       title="Staff">
+                        <i class="fas fa-users" aria-hidden="true"></i>
+                        <span *ngIf="isExpanded" class="menu-title">Staff</span>
+                        <span class="sr-only">Staff</span>
+                    </a>
+
+                    <a *ngIf="readAllReports" 
+                       routerLink="/reports" 
+                       routerLinkActive="active" 
+                       class="nav-item"
+                       [tabindex]="isExpanded ? 0 : -1"
+                       title="Reports">
+                        <i class="fas fa-chart-bar" aria-hidden="true"></i>
+                        <span *ngIf="isExpanded" class="menu-title">Reports</span>
+                        <span class="sr-only">Reports</span>
+                    </a>
+                </nav>
+            </div>
+
+            <div class="menu-section settings-section">
+                <div class="section-title" *ngIf="isExpanded">CONFIGURATION</div>
+
+                <nav class="nav-menu">
+                    <a routerLink="/settings" 
+                       routerLinkActive="active" 
+                       class="nav-item"
+                       [tabindex]="isExpanded ? 0 : -1"
+                       title="Settings">
+                        <i class="fas fa-cog" aria-hidden="true"></i>
+                        <span *ngIf="isExpanded" class="menu-title">Settings</span>
+                        <span class="sr-only">Settings</span>
+                    </a>
+
+                    <a routerLink="/profile" 
+                       routerLinkActive="active" 
+                       class="nav-item"
+                       [tabindex]="isExpanded ? 0 : -1"
+                       title="My Profile">
+                        <i class="fas fa-user" aria-hidden="true"></i>
+                        <span *ngIf="isExpanded" class="menu-title">My Profile</span>
+                        <span class="sr-only">My Profile</span>
+                    </a>
+                    
+                    <button class="nav-item logout-btn" 
+                            (click)="logout()" 
+                            [tabindex]="isExpanded ? 0 : -1"
+                            title="Logout">
+                        <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
+                        <span *ngIf="isExpanded" class="menu-title">Logout</span>
+                        <span class="sr-only">Logout</span>
+                    </button>
+                </nav>
+            </div>
+        </div>
+
+        <div class="sidebar-footer" *ngIf="isExpanded">
+            <div class="version">v1.0.3</div>
+            <div class="copyright">© 2025 RestroRealm</div>
+        </div>
+    </div>
+
+    <!-- Toggle button for collapsed state -->
+    <button *ngIf="!isExpanded" 
+            class="expand-btn" 
+            (click)="toggleSidebar()" 
+            aria-label="Expand sidebar" 
+            title="Expand sidebar">
+        <i class="fas fa-chevron-right" aria-hidden="true"></i>
+    </button>
+</aside>

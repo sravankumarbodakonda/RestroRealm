@@ -1,0 +1,65 @@
+<div class="food-categories">
+  <!-- Header section -->
+  <header class="categories-header">
+    <h1 class="page-title">Menu Categories</h1>
+    <div class="search-box">
+      <input type="text" placeholder="Search categories..." class="search-input" 
+             [(ngModel)]="searchTerm" (input)="searchCategories(searchTerm)">
+      <button class="search-button">
+        <i class="fa fa-search"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Uniform grid of categories -->
+  <div class="categories-grid">
+    <div class="category-card" *ngFor="let category of filteredCategories" 
+         [class.disabled]="!isCategoryAvailable(category)"
+         (click)="isCategoryAvailable(category) && navigateToMenu(category)">
+      
+      <!-- Category image -->
+      <div class="card-image-wrapper">
+        <img [src]="getCategoryImageUrl(category)" [alt]="category.name" class="card-image">
+        <div *ngIf="category.ageRestricted" class="age-restriction-badge">18+</div>
+        <div *ngIf="!isCategoryAvailable(category)" class="unavailable-overlay">
+          <span class="unavailable-text">Currently Unavailable</span>
+        </div>
+      </div>
+      
+      <!-- Category details -->
+      <div class="card-content">
+        <h2 class="card-title">{{ category.name }}</h2>
+        <div class="availability-info">
+          <i class="fa fa-clock-o"></i>
+          <span>{{ category.availableStartTime }} - {{ category.availableEndTime }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Age verification modal -->
+  <div *ngIf="showAgeVerification" class="modal-backdrop">
+    <div class="verification-modal">
+      <div class="modal-header">
+        <h3>Age Verification</h3>
+        <button (click)="cancelAgeVerification()" class="close-modal">×</button>
+      </div>
+      <div class="modal-content">
+        <div class="verification-icon">
+          <i class="fa fa-exclamation-triangle"></i>
+        </div>
+        <p>You must be at least 18 years old to view this category.</p>
+        <p class="verification-note">You only need to verify your age once for this session.</p>
+        <div class="date-input-group">
+          <label for="birth-date">Date of Birth:</label>
+          <input type="date" id="birth-date" [(ngModel)]="tempBirthDate" 
+                 max="{{ currentTime | date: 'yyyy-MM-dd' }}">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button (click)="cancelAgeVerification()" class="cancel-button">Cancel</button>
+        <button [disabled]="!tempBirthDate" (click)="confirmAge()" class="verify-button">Verify</button>
+      </div>
+    </div>
+  </div>
+</div>

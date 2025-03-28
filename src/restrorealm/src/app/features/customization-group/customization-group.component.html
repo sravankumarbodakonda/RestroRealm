@@ -1,0 +1,815 @@
+<!-- customization-group.component.html -->
+<div class="customization-royal-container">
+    <!-- Header Section -->
+    <header class="customization-simple-header">
+        <div class="customization-header-left">
+            <h1 class="customization-title">Customization Groups</h1>
+        </div>
+        
+        <div class="customization-header-right">
+            <div class="customization-search-container">
+                <i class="fas fa-search customization-search-icon"></i>
+                <input 
+                    type="text" 
+                    class="customization-search-field"
+                    [(ngModel)]="searchTerm" 
+                    (input)="onSearch()" 
+                    placeholder="Search customization groups..."
+                    aria-label="Search Groups"
+                />
+                <button *ngIf="searchTerm" class="customization-search-clear" (click)="clearSearch()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="customization-view-toggle">
+                <button 
+                    class="customization-view-btn" 
+                    [class.customization-view-active]="viewMode === 'card'"
+                    (click)="setViewMode('card')" 
+                    aria-label="Card View">
+                    <i class="fas fa-th-large"></i>
+                </button>
+                <button 
+                    class="customization-view-btn" 
+                    [class.customization-view-active]="viewMode === 'list'"
+                    (click)="setViewMode('list')" 
+                    aria-label="List View">
+                    <i class="fas fa-list"></i>
+                </button>
+            </div>
+            
+            <button 
+                *ngIf="createGroup"
+                class="customization-create-btn" 
+                (click)="openCreateDialog()">
+                <i class="fas fa-plus"></i>
+                <span>Add Group</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Summary Panel -->
+    <div class="customization-summary-panel">
+        <div class="customization-summary-stat">
+            <div class="customization-stat-value">{{customizationGroups.length}}</div>
+            <div class="customization-stat-label">Total Groups</div>
+        </div>
+        <div class="customization-summary-stat">
+            <div class="customization-stat-value">{{requiredGroupsCount()}}</div>
+            <div class="customization-stat-label">Required Groups</div>
+        </div>
+        <div class="customization-summary-stat">
+            <div class="customization-stat-value">{{positionGroupsCount()}}</div>
+            <div class="customization-stat-label">Position Enabled</div>
+        </div>
+        <div class="customization-summary-stat">
+            <div class="customization-stat-value">{{quantityEnabledCount()}}</div>
+            <div class="customization-stat-label">Quantity Enabled</div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="customization-content-area">
+        <!-- Filter Bar -->
+        <div class="customization-filter-bar">
+            <div class="customization-filter-group">
+                <label class="customization-filter-label">Filter by:</label>
+                <div class="customization-filter-pills">
+                    <button class="customization-filter-pill" [class.customization-filter-active]="currentFilter === 'all'" (click)="filterGroups('all')">All</button>
+                    <button class="customization-filter-pill" [class.customization-filter-active]="currentFilter === 'required'" (click)="filterGroups('required')">Required</button>
+                    <button class="customization-filter-pill" [class.customization-filter-active]="currentFilter === 'position'" (click)="filterGroups('position')">Position Enabled</button>
+                    <button class="customization-filter-pill" [class.customization-filter-active]="currentFilter === 'quantity'" (click)="filterGroups('quantity')">Quantity Enabled</button>
+                </div>
+            </div>
+            <div class="customization-sort-dropdown">
+                <label class="customization-sort-label">Sort by:</label>
+                <select class="customization-sort-select" (change)="sortGroups($event)">
+                    <option value="name-asc">Name (A-Z)</option>
+                    <option value="name-desc">Name (Z-A)</option>
+                    <option value="display-order">Display Order</option>
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div *ngIf="loading" class="customization-loading">
+            <i class="fas fa-spinner fa-spin"></i>
+            <span>Loading customization groups...</span>
+        </div>
+
+        <!-- Customization Group Grid/List -->
+        <div *ngIf="!loading" [class]="viewMode === 'card' ? 'customization-grid-container' : 'customization-list-container'">
+            <!-- Card View -->
+            <div *ngIf="viewMode === 'card'" class="customization-grid">
+                <article 
+                    *ngFor="let group of paginatedGroups"
+                    class="customization-card">
+                    
+                    <div class="customization-card-header">
+                        <div class="customization-card-badges">
+                            <span *ngIf="group.required" class="customization-badge customization-badge-required">
+                                <i class="fas fa-asterisk"></i> Required
+                            </span>
+                            <span *ngIf="group.positionEnabled" class="customization-badge customization-badge-position">
+                                <i class="fas fa-arrows-alt"></i> Position Enabled
+                            </span>
+                            <span *ngIf="group.quantityEnabled" class="customization-badge customization-badge-quantity">
+                                <i class="fas fa-sort-amount-up"></i> Quantity Enabled
+                            </span>
+                        </div>
+                        <h2 class="customization-card-title">{{ group.name }}</h2>
+                    </div>
+                    
+                    <div class="customization-card-content">
+                        <p class="customization-card-description">{{ group.description || 'No description provided' }}</p>
+                        
+                        <div class="customization-card-details">
+                            <div class="customization-detail-item">
+                                <span class="customization-detail-label">Price Impact:</span>
+                                <span class="customization-detail-value">{{ group.priceImpact || 'ADDITIONAL' }}</span>
+                            </div>
+                            <div class="customization-detail-item">
+                                <span class="customization-detail-label">Multiple Selections:</span>
+                                <span class="customization-detail-value">{{ group.allowMultiple ? 'Yes' : 'No' }}</span>
+                            </div>
+                            <div class="customization-detail-item" *ngIf="group.allowMultiple">
+                                <span class="customization-detail-label">Selection Range:</span>
+                                <span class="customization-detail-value">{{ group.minSelect || 0 }} - {{ group.maxSelect || 1 }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="customization-options-preview" *ngIf="group.options && group.options.length > 0">
+                            <div class="customization-option-label">Associated Options:</div>
+                            <div class="customization-option-count">
+                                <!-- {{ getOptionNames(group.options | slice:0:3) }} -->
+                                <span *ngIf="group.options.length > 3">
+                                    + {{ group.options.length - 3 }} more
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="customization-card-actions">
+                            <button 
+                                *ngIf="readGroup"
+                                class="customization-action-btn customization-view-btn-secondary"
+                                (click)="viewDetails(group)"
+                                aria-label="View details">
+                                <i class="fas fa-eye"></i>
+                                <span class="customization-action-label">View</span>
+                            </button>
+                            <button 
+                                *ngIf="editGroup"
+                                class="customization-action-btn customization-edit-btn"
+                                (click)="openEditDialog(group)"
+                                aria-label="Edit group">
+                                <i class="fas fa-edit"></i>
+                                <span class="customization-action-label">Edit</span>
+                            </button>
+                            <button 
+                                *ngIf="deleteGroup"
+                                class="customization-action-btn customization-delete-btn"
+                                (click)="confirmDelete(group)"
+                                aria-label="Delete group">
+                                <i class="fas fa-trash"></i>
+                                <span class="customization-action-label">Delete</span>
+                            </button>
+                        </div>
+                    </div>
+                </article>
+            </div>
+            
+            <!-- List View -->
+            <div *ngIf="viewMode === 'list'" class="customization-list">
+                <div class="customization-list-header">
+                    <div class="customization-list-cell customization-cell-name">Name</div>
+                    <div class="customization-list-cell customization-cell-features">Features</div>
+                    <div class="customization-list-cell customization-cell-options">Options</div>
+                    <div class="customization-list-cell customization-cell-display">Display Order</div>
+                    <div class="customization-list-cell customization-cell-actions">Actions</div>
+                </div>
+                
+                <div 
+                    *ngFor="let group of paginatedGroups"
+                    class="customization-list-row">
+                    
+                    <div class="customization-list-cell customization-cell-name">
+                        <h3 class="customization-list-title">{{ group.name }}</h3>
+                        <p class="customization-list-description">{{ group.description || 'No description provided' }}</p>
+                    </div>
+                    
+                    <div class="customization-list-cell customization-cell-features">
+                        <div class="customization-feature-tags">
+                            <span *ngIf="group.required" class="customization-feature-tag customization-required-tag">
+                                <i class="fas fa-asterisk"></i> Required
+                            </span>
+                            <span *ngIf="group.allowMultiple" class="customization-feature-tag customization-multiple-tag">
+                                <i class="fas fa-check-double"></i> Multiple
+                            </span>
+                            <span *ngIf="group.positionEnabled" class="customization-feature-tag customization-position-tag">
+                                <i class="fas fa-arrows-alt"></i> Position
+                            </span>
+                            <span *ngIf="group.quantityEnabled" class="customization-feature-tag customization-quantity-tag">
+                                <i class="fas fa-sort-amount-up"></i> Quantity
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="customization-list-cell customization-cell-options">
+                        <div class="customization-options-count">
+                            <span class="customization-count-number">{{ group.options.length || 0 }}</span>
+                            <span class="customization-count-label">options</span>
+                        </div>
+                    </div>
+                    
+                    <div class="customization-list-cell customization-cell-display">
+                        <div class="customization-display-order">
+                            {{ group.displayOrder || 0 }}
+                        </div>
+                    </div>
+                    
+                    <div class="customization-list-cell customization-cell-actions">
+                        <div class="customization-list-actions">
+                            <button 
+                                *ngIf="readGroup"
+                                class="customization-list-btn customization-view-btn-secondary"
+                                (click)="viewDetails(group)"
+                                aria-label="View details">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button 
+                                *ngIf="editGroup"
+                                class="customization-list-btn customization-edit-btn"
+                                (click)="openEditDialog(group)"
+                                aria-label="Edit group">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button 
+                                *ngIf="deleteGroup"
+                                class="customization-list-btn customization-delete-btn"
+                                (click)="confirmDelete(group)"
+                                aria-label="Delete group">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Empty State -->
+        <div *ngIf="!loading && filteredGroups.length === 0" class="customization-empty-state">
+            <div class="customization-empty-illustration">
+                <i class="fas fa-layer-group customization-empty-icon"></i>
+            </div>
+            <h3 class="customization-empty-title">No Customization Groups Found</h3>
+            <p class="customization-empty-message">Your search didn't match any customization groups in your collection</p>
+            <button class="customization-empty-action" (click)="clearSearch()">Clear Search</button>
+        </div>
+        
+        <!-- Pagination -->
+        <div *ngIf="!loading && filteredGroups.length > 0" class="customization-pagination">
+            <div class="customization-pagination-info">
+                Showing {{ (currentPage - 1) * pageSize + 1 }} to {{ Math.min(currentPage * pageSize, filteredGroups.length) }} of {{ filteredGroups.length }} groups
+            </div>
+            <div class="customization-pagination-controls">
+                <button 
+                    class="customization-page-btn customization-prev-btn" 
+                    [disabled]="currentPage === 1"
+                    (click)="goToPage(currentPage - 1)">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                
+                <div class="customization-page-numbers">
+                    <button 
+                        *ngIf="currentPage > 2"
+                        class="customization-page-number" 
+                        (click)="goToPage(1)">
+                        1
+                    </button>
+                    
+                    <span *ngIf="currentPage > 3" class="customization-page-ellipsis">...</span>
+                    
+                    <button 
+                        *ngIf="currentPage > 1"
+                        class="customization-page-number" 
+                        (click)="goToPage(currentPage - 1)">
+                        {{ currentPage - 1 }}
+                    </button>
+                    
+                    <button class="customization-page-number customization-page-current">
+                        {{ currentPage }}
+                    </button>
+                    
+                    <button 
+                        *ngIf="currentPage < totalPages"
+                        class="customization-page-number" 
+                        (click)="goToPage(currentPage + 1)">
+                        {{ currentPage + 1 }}
+                    </button>
+                    
+                    <span *ngIf="currentPage < totalPages - 2" class="customization-page-ellipsis">...</span>
+                    
+                    <button 
+                        *ngIf="currentPage < totalPages - 1"
+                        class="customization-page-number" 
+                        (click)="goToPage(totalPages)">
+                        {{ totalPages }}
+                    </button>
+                </div>
+                
+                <button 
+                    class="customization-page-btn customization-next-btn"
+                    [disabled]="currentPage === totalPages" 
+                    (click)="goToPage(currentPage + 1)">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            
+            <div class="customization-page-size">
+                <label for="pageSize" class="customization-page-size-label">Items per page:</label>
+                <select id="pageSize" class="customization-page-size-select" [(ngModel)]="pageSize" (change)="updatePageSize()">
+                    <option value="6">6</option>
+                    <option value="12">12</option>
+                    <option value="24">24</option>
+                    <option value="48">48</option>
+                </select>
+            </div>
+        </div>
+    </main>
+
+    <!-- Create/Edit Dialog -->
+    <div class="customization-modal-backdrop" *ngIf="showDialog" (click)="closeDialogIfBackdrop($event)">
+        <div class="customization-modal-container" (click)="$event.stopPropagation()">
+            <div class="customization-modal-header">
+                <h2 class="customization-modal-title">{{ editingGroup ? 'Edit Group' : 'Create New Group' }}</h2>
+                <button class="customization-modal-close" (click)="closeDialog()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="customization-modal-divider"></div>
+            
+            <div class="customization-modal-body">
+                <form [formGroup]="groupForm" (ngSubmit)="onSubmit()" class="customization-form">
+                    <div class="customization-form-columns">
+                        <div class="customization-form-left">
+                            <div class="customization-form-group">
+                                <label class="customization-form-label">Group Name <span class="customization-required-mark">*</span></label>
+                                <input 
+                                    type="text" 
+                                    formControlName="name"
+                                    class="customization-form-input"
+                                    [class.customization-input-error]="groupForm.get('name')?.invalid && groupForm.get('name')?.touched"
+                                    placeholder="Enter group name"
+                                />
+                                <div *ngIf="groupForm.get('name')?.invalid && groupForm.get('name')?.touched" class="customization-error-message">
+                                    <span *ngIf="groupForm.get('name')?.errors?.['required']">Name is required</span>
+                                    <span *ngIf="groupForm.get('name')?.errors?.['minlength']">Name must be at least 3 characters</span>
+                                    <span *ngIf="groupForm.get('name')?.errors?.['maxlength']">Name cannot exceed 50 characters</span>
+                                </div>
+                            </div>
+
+                            <div class="customization-form-group">
+                                <label class="customization-form-label">Description</label>
+                                <textarea 
+                                    formControlName="description"
+                                    class="customization-form-textarea"
+                                    placeholder="Enter group description"
+                                    rows="3"
+                                ></textarea>
+                                <div *ngIf="groupForm.get('description')?.invalid && groupForm.get('description')?.touched" class="customization-error-message">
+                                    <span *ngIf="groupForm.get('description')?.errors?.['maxlength']">Description cannot exceed 500 characters</span>
+                                </div>
+                            </div>
+
+                            <div class="customization-form-row">
+                                <div class="customization-form-group customization-form-half">
+                                    <label class="customization-form-label">Display Order</label>
+                                    <input 
+                                        type="number" 
+                                        min="0"
+                                        formControlName="displayOrder"
+                                        class="customization-form-input"
+                                    />
+                                </div>
+                                
+                                <div class="customization-form-group customization-form-half">
+                                    <label class="customization-form-label">Price Impact</label>
+                                    <select 
+                                        formControlName="priceImpact"
+                                        class="customization-form-select">
+                                        <option value="FREE">Free (No price change)</option>
+                                        <option value="ADDITIONAL">Additional (Add to base price)</option>
+                                        <option value="INCLUDED">Included (Already in base price)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="customization-form-row">
+                                <div class="customization-form-group customization-form-half">
+                                    <label class="customization-form-label">Required Selection</label>
+                                    <div class="customization-toggle-container">
+                                        <label class="customization-toggle">
+                                            <input type="checkbox" formControlName="required">
+                                            <span class="customization-toggle-slider"></span>
+                                        </label>
+                                        <span class="customization-toggle-label">{{ groupForm.get('required')?.value ? 'Required' : 'Optional' }}</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="customization-form-group customization-form-half">
+                                    <label class="customization-form-label">Active</label>
+                                    <div class="customization-toggle-container">
+                                        <label class="customization-toggle">
+                                            <input type="checkbox" formControlName="active">
+                                            <span class="customization-toggle-slider"></span>
+                                        </label>
+                                        <span class="customization-toggle-label">{{ groupForm.get('active')?.value ? 'Active' : 'Inactive' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="customization-form-row">
+                                <div class="customization-form-group customization-form-half">
+                                    <label class="customization-form-label">Allow Multiple Selections</label>
+                                    <div class="customization-toggle-container">
+                                        <label class="customization-toggle">
+                                            <input type="checkbox" formControlName="allowMultiple">
+                                            <span class="customization-toggle-slider"></span>
+                                        </label>
+                                        <span class="customization-toggle-label">{{ groupForm.get('allowMultiple')?.value ? 'Multiple' : 'Single' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="customization-form-row" *ngIf="groupForm.get('allowMultiple')?.value">
+                                <div class="customization-form-group customization-form-half">
+                                    <label class="customization-form-label">Minimum Selections</label>
+                                    <input 
+                                        type="number" 
+                                        min="0"
+                                        formControlName="minSelect"
+                                        class="customization-form-input"
+                                        [class.customization-input-error]="groupForm.get('minSelect')?.invalid && groupForm.get('minSelect')?.touched"
+                                    />
+                                    <div *ngIf="groupForm.get('minSelect')?.invalid && groupForm.get('minSelect')?.touched" class="customization-error-message">
+                                        <span *ngIf="groupForm.get('minSelect')?.errors?.['min']">Minimum selection cannot be negative</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="customization-form-group customization-form-half">
+                                    <label class="customization-form-label">Maximum Selections</label>
+                                    <input 
+                                        type="number" 
+                                        min="1"
+                                        formControlName="maxSelect"
+                                        class="customization-form-input"
+                                        [class.customization-input-error]="groupForm.get('maxSelect')?.invalid && groupForm.get('maxSelect')?.touched"
+                                    />
+                                    <div *ngIf="groupForm.get('maxSelect')?.invalid && groupForm.get('maxSelect')?.touched" class="customization-error-message">
+                                        <span *ngIf="groupForm.get('maxSelect')?.errors?.['min']">Maximum selection must be at least 1</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div *ngIf="groupForm.errors?.['minGreaterThanMax']" class="customization-error-message customization-form-error">
+                                Minimum selection cannot be greater than maximum selection
+                            </div>
+                            
+                            <div class="customization-form-row">
+                                <div class="customization-form-group customization-form-half">
+                                    <label class="customization-form-label">Enable Position</label>
+                                    <div class="customization-toggle-container">
+                                        <label class="customization-toggle">
+                                            <input type="checkbox" formControlName="positionEnabled">
+                                            <span class="customization-toggle-slider"></span>
+                                        </label>
+                                        <span class="customization-toggle-label">{{ groupForm.get('positionEnabled')?.value ? 'Enabled' : 'Disabled' }}</span>
+                                    </div>
+                                    <div class="customization-form-help" *ngIf="groupForm.get('positionEnabled')?.value">
+                                        Allow customers to specify positions (e.g., left half, right half)
+                                    </div>
+                                </div>
+                                
+                                <div class="customization-form-group customization-form-half">
+                                    <label class="customization-form-label">Enable Quantity</label>
+                                    <div class="customization-toggle-container">
+                                        <label class="customization-toggle">
+                                            <input type="checkbox" formControlName="quantityEnabled">
+                                            <span class="customization-toggle-slider"></span>
+                                        </label>
+                                        <span class="customization-toggle-label">{{ groupForm.get('quantityEnabled')?.value ? 'Enabled' : 'Disabled' }}</span>
+                                    </div>
+                                    <div class="customization-form-help" *ngIf="groupForm.get('quantityEnabled')?.value">
+                                        Allow customers to specify quantities (e.g., extra, light)
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="customization-form-right">
+                            <!-- Menu Options Section -->
+                            <div class="customization-form-group">
+                                <label class="customization-form-label">Menu Options</label>
+                                <select 
+                                    multiple
+                                    formControlName="options"
+                                    class="customization-form-multiselect">
+                                    <option *ngFor="let option of menuOptions" [value]="option.id">
+                                        {{ option.name || option.optionName }}
+                                    </option>
+                                </select>
+                                <div class="customization-form-help">
+                                    Hold Ctrl (or Cmd on Mac) to select multiple options. These are the options that will be available for this customization group.
+                                </div>
+                            </div>
+                            
+                            <!-- Image Upload Section -->
+                            <div class="customization-image-upload">
+                                <label class="customization-form-label">Group Image</label>
+                                
+                                <div class="customization-image-preview-container">
+                                    <div class="customization-image-preview" [class.customization-has-image]="imagePreview || (editingGroup && editingGroup.imagePath)">
+                                        <img 
+                                            *ngIf="imagePreview" 
+                                            [src]="imagePreview" 
+                                            alt="Image preview" 
+                                            class="customization-preview-img"
+                                        />
+                                        <img 
+                                            *ngIf="!imagePreview && editingGroup && editingGroup.imagePath" 
+                                            [src]="getImagePath(editingGroup)" 
+                                            alt="Current image" 
+                                            class="customization-preview-img"
+                                            (error)="handlePreviewError($event)"
+                                        />
+                                        <div *ngIf="!imagePreview && (!editingGroup || !editingGroup.imagePath)" class="customization-no-image">
+                                            <i class="fas fa-image"></i>
+                                            <span>No image selected</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="customization-image-tabs">
+                                    <button 
+                                        type="button"
+                                        class="customization-image-tab" 
+                                        [class.customization-tab-active]="imageInputType === 'file'"
+                                        (click)="setImageInputType('file')">
+                                        Upload Image
+                                    </button>
+                                    <button 
+                                        type="button"
+                                        class="customization-image-tab" 
+                                        [class.customization-tab-active]="imageInputType === 'url'"
+                                        (click)="setImageInputType('url')">
+                                        Image URL
+                                    </button>
+                                </div>
+                                
+                                <div *ngIf="imageInputType === 'file'" class="customization-file-upload">
+                                    <label class="customization-upload-btn">
+                                        <input 
+                                            type="file" 
+                                            (change)="onImageSelect($event)"
+                                            accept="image/*"
+                                            hidden
+                                        />
+                                        <i class="fas fa-upload"></i>
+                                        <span>{{ groupForm.get('image')?.value ? 'Change Image' : 'Select Image' }}</span>
+                                    </label>
+                                    <span *ngIf="groupForm.get('image')?.value" class="customization-filename">
+                                        {{ getFileName() }}
+                                    </span>
+                                </div>
+                                
+                                <div *ngIf="imageInputType === 'url'" class="customization-url-input">
+                                    <input 
+                                        type="text" 
+                                        class="customization-form-input"
+                                        formControlName="imageUrl"
+                                        placeholder="Enter image URL"
+                                        (blur)="updateImagePreviewFromUrl()"
+                                    />
+                                    <button 
+                                        type="button"
+                                        class="customization-preview-url-btn"
+                                        (click)="updateImagePreviewFromUrl()">
+                                        Preview
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="customization-modal-divider"></div>
+                    
+                    <div class="customization-form-actions">
+                        <button 
+                            type="button" 
+                            class="customization-btn-secondary"
+                            (click)="closeDialog()">
+                            Cancel
+                        </button>
+                        <button 
+                            type="submit" 
+                            class="customization-btn-primary"
+                            [disabled]="groupForm.invalid || loading || formSubmitting">
+                            <span *ngIf="!loading && !formSubmitting">{{ editingGroup ? 'Update Group' : 'Create Group' }}</span>
+                            <span *ngIf="loading || formSubmitting" class="customization-btn-loader">
+                                <i class="fas fa-spinner fa-spin"></i> Saving...
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Details Modal -->
+    <div class="customization-modal-backdrop" *ngIf="showDetailsModal" (click)="closeDetailsModal($event)">
+        <div class="customization-modal-container customization-details-modal" (click)="$event.stopPropagation()">
+            <div class="customization-modal-header">
+                <h2 class="customization-modal-title">Group Details</h2>
+                <button class="customization-modal-close" (click)="closeDetailsModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="customization-modal-divider"></div>
+            
+            <div class="customization-modal-body" *ngIf="selectedGroup">
+                <div class="customization-details-content">
+                    <div class="customization-details-header">
+                        <h3 class="customization-details-name">{{ selectedGroup.name }}</h3>
+                        
+                        <div class="customization-details-badges">
+                            <span *ngIf="selectedGroup.required" class="customization-badge customization-badge-required">
+                                <i class="fas fa-asterisk"></i> Required
+                            </span>
+                            <span *ngIf="selectedGroup.allowMultiple" class="customization-badge customization-badge-multiple">
+                                <i class="fas fa-check-double"></i> Multiple Selection
+                            </span>
+                            <span *ngIf="selectedGroup.positionEnabled" class="customization-badge customization-badge-position">
+                                <i class="fas fa-arrows-alt"></i> Position Enabled
+                            </span>
+                            <span *ngIf="selectedGroup.quantityEnabled" class="customization-badge customization-badge-quantity">
+                                <i class="fas fa-sort-amount-up"></i> Quantity Enabled
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="customization-details-description" *ngIf="selectedGroup.description">
+                        <p>{{ selectedGroup.description }}</p>
+                    </div>
+                    
+                    <div class="customization-details-info">
+                        <div class="customization-details-section">
+                            <h4 class="customization-details-section-title">Configuration</h4>
+                            <div class="customization-details-info-grid">
+                                <div class="customization-details-info-item">
+                                    <span class="customization-details-label">Price Impact:</span>
+                                    <span class="customization-details-value">{{ selectedGroup.priceImpact || 'ADDITIONAL' }}</span>
+                                </div>
+                                <div class="customization-details-info-item">
+                                    <span class="customization-details-label">Active:</span>
+                                    <span class="customization-details-value">{{ selectedGroup.active ? 'Yes' : 'No' }}</span>
+                                </div>
+                                <div class="customization-details-info-item">
+                                    <span class="customization-details-label">Display Order:</span>
+                                    <span class="customization-details-value">{{ selectedGroup.displayOrder || 0 }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="customization-details-section" *ngIf="selectedGroup.allowMultiple">
+                            <h4 class="customization-details-section-title">Multiple Selection Settings</h4>
+                            <div class="customization-details-info-grid">
+                                <div class="customization-details-info-item">
+                                    <span class="customization-details-label">Minimum:</span>
+                                    <span class="customization-details-value">{{ selectedGroup.minSelect || 0 }}</span>
+                                </div>
+                                <div class="customization-details-info-item">
+                                    <span class="customization-details-label">Maximum:</span>
+                                    <span class="customization-details-value">{{ selectedGroup.maxSelect || 1 }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="customization-details-section">
+                            <h4 class="customization-details-section-title">
+                                Associated Menu Options
+                                <span class="customization-details-count">{{ selectedGroup.options.length || 0 }}</span>
+                            </h4>
+                            
+                            <div *ngIf="!selectedGroup.options || selectedGroup.options.length === 0" class="customization-details-no-items">
+                                No menu options have been assigned to this group.
+                            </div>
+                            
+                            <div class="customization-details-options">
+                                <ul class="customization-options-list">
+                                    <li *ngFor="let option of getMenuOptionsForGroup(selectedGroup)" class="customization-option-item">
+                                        {{ option.name || option.optionName }}
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="customization-modal-divider"></div>
+            
+            <div class="customization-details-actions">
+                <button 
+                    *ngIf="editGroup"
+                    class="customization-btn-secondary"
+                    (click)="editFromDetails()">
+                    <i class="fas fa-edit"></i> Edit Group
+                </button>
+                <button 
+                    class="customization-btn-primary"
+                    (click)="closeDetailsModal()">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="customization-modal-backdrop" *ngIf="showDeleteConfirmation" (click)="cancelDelete($event)">
+        <div class="customization-modal-container customization-delete-modal" (click)="$event.stopPropagation()">
+            <div class="customization-modal-header">
+                <h2 class="customization-modal-title customization-delete-title">Confirm Deletion</h2>
+                <button class="customization-modal-close" (click)="cancelDelete()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="customization-modal-divider"></div>
+            
+            <div class="customization-modal-body">
+                <div class="customization-delete-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                
+                <h3 class="customization-delete-heading">Are you sure you want to delete this group?</h3>
+                
+                <p class="customization-delete-message">
+                    You are about to delete "<strong>{{ groupToDelete?.name }}</strong>". 
+                    This action cannot be undone and this group will be removed from all menu items that use it.
+                </p>
+                
+                <div class="customization-delete-details">
+                    <h4 class="customization-delete-subheading">Group Details:</h4>
+                    <ul class="customization-delete-info">
+                        <li>Required: {{ groupToDelete?.required ? 'Yes' : 'No' }}</li>
+                        <li>Multiple Selection: {{ groupToDelete?.allowMultiple ? 'Yes' : 'No' }}</li>
+                        <li>Position Enabled: {{ groupToDelete?.positionEnabled ? 'Yes' : 'No' }}</li>
+                        <li>Quantity Enabled: {{ groupToDelete?.quantityEnabled ? 'Yes' : 'No' }}</li>
+                        <li>Associated Options: {{ groupToDelete?.options?.length || 0 }}</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="customization-modal-divider"></div>
+            
+            <div class="customization-delete-actions">
+                <button 
+                    class="customization-btn-secondary"
+                    (click)="cancelDelete()">
+                    Cancel
+                </button>
+                <button 
+                    class="customization-btn-danger"
+                    [disabled]="deletingGroup"
+                    (click)="proceedWithDelete()">
+                    <span *ngIf="!deletingGroup">
+                        <i class="fas fa-trash"></i> Delete Permanently
+                    </span>
+                    <span *ngIf="deletingGroup" class="customization-btn-loader">
+                        <i class="fas fa-spinner fa-spin"></i> Deleting...
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div *ngIf="toast" class="customization-toast" [class.customization-toast-success]="toast.type === 'success'" [class.customization-toast-error]="toast.type === 'error'">
+        <div class="customization-toast-icon">
+            <i *ngIf="toast.type === 'success'" class="fas fa-check-circle"></i>
+            <i *ngIf="toast.type === 'error'" class="fas fa-exclamation-circle"></i>
+        </div>
+        <div class="customization-toast-content">
+            <p class="customization-toast-message">{{ toast.message }}</p>
+        </div>
+        <button class="customization-toast-close" (click)="dismissToast()">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="customization-toast-progress"></div>
+    </div>
+</div>

@@ -1,0 +1,455 @@
+<div class="luxury-role-management">
+    <div class="luxury-backdrop">
+        <div class="circle circle-1"></div>
+        <div class="circle circle-2"></div>
+        <div class="circle circle-3"></div>
+        <div class="line line-1"></div>
+        <div class="line line-2"></div>
+        <div class="line line-3"></div>
+        <div class="dots-group dots-group-1">
+            <div class="dot" style="top: 0; left: 0;"></div>
+            <div class="dot" style="top: 8px; left: 8px;"></div>
+            <div class="dot" style="top: 16px; left: 16px;"></div>
+            <div class="dot" style="top: 24px; left: 24px;"></div>
+            <div class="dot" style="top: 32px; left: 32px;"></div>
+        </div>
+        <div class="dots-group dots-group-2">
+            <div class="dot" style="top: 0; left: 32px;"></div>
+            <div class="dot" style="top: 8px; left: 24px;"></div>
+            <div class="dot" style="top: 16px; left: 16px;"></div>
+            <div class="dot" style="top: 24px; left: 8px;"></div>
+            <div class="dot" style="top: 32px; left: 0;"></div>
+        </div>
+    </div>
+
+    <!-- Header Section -->
+    <header class="luxury-header">
+        <div class="luxury-title-container">
+            <div class="luxury-logo">
+                <i class="fas fa-user-tag"></i>
+            </div>
+            <div class="luxury-title-wrapper">
+                <p class="luxury-subtitle">Management Console</p>
+                <h1 class="luxury-title">Role Management</h1>
+            </div>
+        </div>
+        
+        <div class="luxury-controls">
+            <div class="luxury-search">
+                <input 
+                    type="text" 
+                    class="luxury-search-input"
+                    [(ngModel)]="searchTerm" 
+                    (input)="onSearch()" 
+                    placeholder="Search roles by name or description..."
+                    aria-label="Search Roles"
+                />
+                <i class="fas fa-search luxury-search-icon"></i>
+            </div>
+            
+            <button 
+                class="luxury-filter-btn" 
+                (click)="toggleFilters()"
+                [class.active]="showFilters">
+                <i class="fas fa-filter"></i> Filters
+                <span class="luxury-filter-badge" *ngIf="filterStatus !== 'all' || filterPermissionCount !== 'all' || filterCreatedBy !== 'all'">
+                    <i class="fas fa-check"></i>
+                </span>
+            </button>
+            
+            <div class="luxury-view-toggle" [class.list-active]="viewMode === 'list'">
+                <button 
+                    class="luxury-view-btn" 
+                    [class.active]="viewMode === 'card'"
+                    (click)="viewMode = 'card'"
+                    aria-label="Card View">
+                    <i class="fas fa-th-large"></i>
+                </button>
+                <button 
+                    class="luxury-view-btn" 
+                    [class.active]="viewMode === 'list'"
+                    (click)="viewMode = 'list'"
+                    aria-label="List View">
+                    <i class="fas fa-list"></i>
+                </button>
+            </div>
+            
+            <button 
+                *ngIf="createRole"
+                class="luxury-add-btn" 
+                (click)="openCreateDialog()">
+                <i class="fas fa-plus"></i> Add New Role
+            </button>
+        </div>
+    </header>
+    
+    <!-- Filters Panel -->
+    <div class="luxury-filters-panel" [class.show]="showFilters">
+        <div class="luxury-filters-header">
+            <h3 class="luxury-filters-title">
+                <i class="fas fa-sliders-h"></i> Advanced Filters
+            </h3>
+            <button class="luxury-filters-reset" (click)="resetFilters()">
+                <i class="fas fa-undo"></i> Reset
+            </button>
+        </div>
+        
+        <div class="luxury-filters-grid">
+            <!-- Status Filter -->
+            <div class="luxury-filter-group">
+                <label class="luxury-filter-label">
+                    <i class="fas fa-circle"></i> Status
+                </label>
+                <div class="luxury-filter-option-group">
+                    <div class="luxury-filter-option">
+                        <input type="radio" id="status-all" name="status" 
+                               [(ngModel)]="filterStatus" value="all"
+                               (change)="applyFilters()">
+                        <label for="status-all">All</label>
+                    </div>
+                    <div class="luxury-filter-option" *ngFor="let status of availableStatuses">
+                        <input type="radio" [id]="'status-' + status" name="status" 
+                               [(ngModel)]="filterStatus" [value]="status"
+                               (change)="applyFilters()">
+                        <label [for]="'status-' + status" [class]="'status-' + status">
+                            {{ status | titlecase }}
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Permissions Filter -->
+            <div class="luxury-filter-group">
+                <label class="luxury-filter-label">
+                    <i class="fas fa-shield-alt"></i> Permission Count
+                </label>
+                <select class="luxury-filter-select" [(ngModel)]="filterPermissionCount" (change)="applyFilters()">
+                    <option *ngFor="let option of filterPermissionOptions" [value]="option.value">
+                        {{ option.label }}
+                    </option>
+                </select>
+            </div>
+            
+            <!-- Specific Permission Filter -->
+            <div class="luxury-filter-group">
+                <label class="luxury-filter-label">
+                    <i class="fas fa-key"></i> Individual Permissions
+                </label>
+                <div class="luxury-filter-condition">
+                    <span class="luxury-filter-condition-label">Match:</span>
+                    <div class="luxury-filter-condition-toggle">
+                        <button 
+                            class="luxury-condition-btn" 
+                            [class.active]="filterCondition === 'any'" 
+                            (click)="filterCondition = 'any'; applyFilters()">
+                            Any
+                        </button>
+                        <button 
+                            class="luxury-condition-btn" 
+                            [class.active]="filterCondition === 'all'" 
+                            (click)="filterCondition = 'all'; applyFilters()">
+                            All
+                        </button>
+                    </div>
+                </div>
+                <div class="luxury-filter-permissions-list">
+                    <div 
+                        *ngFor="let permission of permissions"
+                        class="luxury-filter-permission-item"
+                        [class.selected]="isPermissionSelected(permission.id)"
+                        (click)="togglePermissionFilter(permission.id)">
+                        <div class="luxury-filter-permission-checkbox">
+                            <i class="fas" [class.fa-check-square]="isPermissionSelected(permission.id)" [class.fa-square]="!isPermissionSelected(permission.id)"></i>
+                        </div>
+                        <div class="luxury-filter-permission-name">
+                            {{ permission.name }}
+                        </div>
+                    </div>
+                </div>
+                <div class="luxury-filter-badge-container" *ngIf="filterBySpecificPermissions.length > 0">
+                    <div class="luxury-filter-selection-summary">
+                        <span>{{ filterBySpecificPermissions.length }} permission(s) selected</span>
+                        <button class="luxury-badge-clear" (click)="clearPermissionFilter()">
+                            Clear All
+                        </button>
+                    </div>
+                    <div class="luxury-active-filter-badges">
+                        <div *ngFor="let permId of filterBySpecificPermissions" class="luxury-active-filter-badge">
+                            <span>{{ getPermissionName(permId) }}</span>
+                            <button class="luxury-badge-clear" (click)="togglePermissionFilter(permId)">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sort Order -->
+            <div class="luxury-filter-group">
+                <label class="luxury-filter-label">
+                    <i class="fas fa-sort"></i> Sort By
+                </label>
+                <div class="luxury-sort-controls">
+                    <button class="luxury-sort-btn" [class.active]="sortBy === 'name'" (click)="applySorting('name')">
+                        Name
+                        <i *ngIf="sortBy === 'name'" class="fas" 
+                           [class.fa-sort-alpha-down]="sortDirection === 'asc'"
+                           [class.fa-sort-alpha-up]="sortDirection === 'desc'"></i>
+                    </button>
+                    <button class="luxury-sort-btn" [class.active]="sortBy === 'permissions'" (click)="applySorting('permissions')">
+                        Permissions
+                        <i *ngIf="sortBy === 'permissions'" class="fas" 
+                           [class.fa-sort-numeric-down]="sortDirection === 'asc'"
+                           [class.fa-sort-numeric-up]="sortDirection === 'desc'"></i>
+                    </button>
+                    <button class="luxury-sort-btn" [class.active]="sortBy === 'date'" (click)="applySorting('date')">
+                        Date Created
+                        <i *ngIf="sortBy === 'date'" class="fas" 
+                           [class.fa-sort-amount-down]="sortDirection === 'asc'"
+                           [class.fa-sort-amount-up]="sortDirection === 'desc'"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="luxury-main">
+        <div class="luxury-roles-grid" [ngClass]="viewMode">
+            <article 
+                *ngFor="let role of filteredRoles; let i = index"
+                class="luxury-role-card">
+                
+                <div class="luxury-role-content">
+                    <header class="luxury-role-header">
+                        <h2 class="luxury-role-name">{{ role.name }}</h2>
+                    </header>
+                    
+                    <p class="luxury-role-description">{{ role.description || 'No description provided' }}</p>
+                    
+                    <div class="luxury-role-footer">
+                        <div class="luxury-permission-count">
+                            <i class="fas fa-shield-alt"></i>
+                            {{ role.permissions.length || 0 }} Permissions
+                        </div>
+                        
+                        <div class="luxury-role-actions">
+                            <button 
+                                *ngIf="readSingleRole"
+                                class="luxury-role-btn view"
+                                (click)="openViewDialog(role)"
+                                aria-label="View role details">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button 
+                                *ngIf="editRole"
+                                class="luxury-role-btn edit"
+                                (click)="openEditDialog(role)"
+                                aria-label="Edit role">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button 
+                                *ngIf="deleteSingleRole"
+                                class="luxury-role-btn delete"
+                                (click)="deleteRole(role)"
+                                aria-label="Delete role">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </article>
+        </div>
+
+        <!-- Empty State -->
+        <div *ngIf="filteredRoles.length === 0" class="luxury-empty-state">
+            <i class="fas fa-user-tag luxury-empty-icon"></i>
+            <h3 class="luxury-empty-title">No Roles Found</h3>
+            <p class="luxury-empty-description">Try adjusting your search criteria or create a new role to start managing permissions</p>
+        </div>
+    </main>
+
+    <!-- Create/Edit Role Dialog -->
+    <div class="luxury-dialog-backdrop" *ngIf="showDialog">
+        <div class="luxury-dialog">
+            <div class="luxury-dialog-header">
+                <h2 class="luxury-dialog-title">
+                    <i class="fas" [ngClass]="editingRole ? 'fa-edit' : 'fa-plus-circle'"></i>
+                    {{ editingRole ? 'Edit Role' : 'Create New Role' }}
+                </h2>
+                <p class="luxury-dialog-subtitle">
+                    {{ editingRole ? 'Update the details and permissions for this role' : 'Define a new role and assign permissions' }}
+                </p>
+            </div>
+            
+            <div class="luxury-dialog-content">
+                <form [formGroup]="roleForm" (ngSubmit)="onSubmit()" class="luxury-form">
+                    <div class="luxury-form-field">
+                        <label class="luxury-form-label" for="roleName">
+                            <i class="fas fa-tag"></i> Role Name
+                        </label>
+                        <input 
+                            type="text" 
+                            id="roleName"
+                            formControlName="name"
+                            class="luxury-form-input"
+                            placeholder="Enter a descriptive name for this role"
+                            required
+                        />
+                    </div>
+
+                    <div class="luxury-form-field">
+                        <label class="luxury-form-label" for="roleDescription">
+                            <i class="fas fa-align-left"></i> Description
+                        </label>
+                        <textarea 
+                            id="roleDescription"
+                            formControlName="description"
+                            class="luxury-form-input luxury-form-textarea"
+                            placeholder="Describe the purpose and scope of this role"
+                            rows="3"
+                        ></textarea>
+                    </div>
+
+                    <div class="luxury-form-field">
+                        <div class="luxury-permissions-section">
+                            <div class="luxury-permissions-header">
+                                <div class="luxury-permissions-title">
+                                    <i class="fas fa-shield-alt"></i> Permissions
+                                </div>
+                                <label class="luxury-select-all">
+                                    <input 
+                                        type="checkbox" 
+                                        class="luxury-select-all-checkbox"
+                                        [checked]="areAllPermissionsSelected()"
+                                        (change)="toggleAllPermissions($event)"
+                                    />
+                                    <span class="luxury-select-all-label">Select All</span>
+                                </label>
+                            </div>
+                            
+                            <div class="luxury-permissions-list">
+                                <div *ngFor="let permission of permissions" class="luxury-permission-item">
+                                    <input 
+                                        type="checkbox"
+                                        [id]="'perm-' + permission.id"
+                                        class="luxury-permission-checkbox"
+                                        [checked]="isPermissionChecked(permission)"
+                                        (change)="onPermissionChange(permission, $event)"
+                                    />
+                                    <div class="luxury-permission-info">
+                                        <div class="luxury-permission-name">
+                                            {{ permission.name }}
+                                        </div>
+                                        <p class="luxury-permission-description">
+                                            {{ permission.description }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="luxury-dialog-footer">
+                <button 
+                    type="button" 
+                    class="luxury-btn luxury-btn-secondary"
+                    (click)="closeDialog()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button 
+                    type="submit" 
+                    class="luxury-btn luxury-btn-primary"
+                    [class.luxury-loading]="loading"
+                    [disabled]="roleForm.invalid || loading"
+                    (click)="onSubmit()">
+                    <span *ngIf="!loading">
+                        <i class="fas" [ngClass]="editingRole ? 'fa-save' : 'fa-plus-circle'"></i>
+                        {{ editingRole ? 'Update Role' : 'Create Role' }}
+                    </span>
+                    <span *ngIf="loading">
+                        <span class="luxury-spinner"></span> 
+                        {{ editingRole ? 'Updating...' : 'Creating...' }}
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Role Dialog -->
+    <div class="luxury-dialog-backdrop" *ngIf="showViewDialog">
+        <div class="luxury-dialog luxury-view-dialog">
+            <div class="luxury-dialog-header">
+                <h2 class="luxury-dialog-title">
+                    <i class="fas fa-eye"></i>
+                    Role Details
+                </h2>
+                <p class="luxury-dialog-subtitle">
+                    Viewing permissions and information for this role
+                </p>
+            </div>
+            
+            <div class="luxury-dialog-content">
+                <div class="luxury-view-content">
+                    <div class="luxury-detail-section">
+                        <div class="luxury-detail-label">
+                            <i class="fas fa-tag"></i> Role Name
+                        </div>
+                        <div class="luxury-detail-value">{{ viewingRole?.name }}</div>
+                    </div>
+                    
+                    <div class="luxury-detail-section">
+                        <div class="luxury-detail-label">
+                            <i class="fas fa-align-left"></i> Description
+                        </div>
+                        <div class="luxury-detail-value">{{ viewingRole?.description || 'No description provided' }}</div>
+                    </div>
+                    
+                    <div class="luxury-detail-section">
+                        <div class="luxury-detail-label">
+                            <i class="fas fa-shield-alt"></i> Permissions ({{ viewingRole?.permissions?.length || 0 }})
+                        </div>
+                        <div *ngIf="viewingRole?.permissions?.length" class="luxury-permissions-grid">
+                            <div *ngFor="let permission of viewingRole.permissions" class="luxury-permission-badge">
+                                <i class="fas fa-check-circle"></i>
+                                {{ permission.name }}
+                            </div>
+                        </div>
+                        <div *ngIf="!viewingRole?.permissions?.length" class="luxury-detail-value">
+                            No permissions assigned to this role
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="luxury-dialog-footer">
+                <button 
+                    type="button" 
+                    class="luxury-btn luxury-btn-secondary" 
+                    (click)="closeViewDialog()">
+                    <i class="fas fa-times"></i> Close
+                </button>
+                <button 
+                    *ngIf="editRole" 
+                    type="button" 
+                    class="luxury-btn luxury-btn-primary" 
+                    (click)="editFromViewDialog(viewingRole)">
+                    <i class="fas fa-edit"></i> Edit Role
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Notification -->
+    <div *ngIf="toast" class="luxury-toast" [class]="'luxury-toast-' + toast.type" [@toastAnimation]="toastAnimationState">
+        <div class="luxury-toast-icon">
+            <i class="fas" [ngClass]="toast.type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'"></i>
+        </div>
+        <div class="luxury-toast-content">
+            <h4 class="luxury-toast-title">{{ toast.type === 'success' ? 'Success' : 'Error' }}</h4>
+            <p class="luxury-toast-message">{{ toast.message }}</p>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,213 @@
+<div class="food-cart-experience">
+  <!-- Dynamic background elements -->
+  <div class="animated-bg-elements">
+    <div class="floating-element element-1"></div>
+    <div class="floating-element element-2"></div>
+    <div class="floating-element element-3"></div>
+  </div>
+  
+  <div class="cart-header">
+    <div class="logo-area">
+      <div class="brand-logo"></div>
+      <h1 class="experience-title">Your Feast</h1>
+    </div>
+    <div class="progress-tracker">
+      <div class="progress-step active">
+        <span class="step-number">1</span>
+        <span class="step-name">Cart</span>
+      </div>
+      <div class="progress-connector"></div>
+      <div class="progress-step">
+        <span class="step-number">2</span>
+        <span class="step-name">Checkout</span>
+      </div>
+      <div class="progress-connector"></div>
+      <div class="progress-step">
+        <span class="step-number">3</span>
+        <span class="step-name">Enjoy!</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty cart state -->
+  <div *ngIf="(cartItems$ | async)?.length === 0" class="empty-experience">
+    <div class="empty-animation">
+      <div class="plate-illustration">
+        <div class="plate-circle"></div>
+        <div class="utensils">
+          <div class="fork"></div>
+          <div class="knife"></div>
+        </div>
+      </div>
+    </div>
+    <h2 class="empty-headline">Your plate is empty!</h2>
+    <p class="empty-subtext">Time to discover flavors that will make your taste buds dance</p>
+    <a routerLink="/menu" class="discover-btn">
+      <span class="btn-text">Discover Culinary Delights</span>
+      <div class="btn-icon">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+        </svg>
+      </div>
+    </a>
+  </div>
+
+  <!-- Cart with items -->
+  <div *ngIf="( (cartItems$ | async) ?? [] ).length > 0" class="cart-experience">
+    <div class="cart-details">
+      <h2 class="delightful-headline">Your Culinary Journey</h2>
+      <p class="items-count">{{ (cartItems$ | async)?.length }} {{ (cartItems$ | async)?.length === 1 ? 'item' : 'items' }} in your feast</p>
+      
+      <div class="feast-items">
+        <div class="feast-item" *ngFor="let item of cartItems$ | async" [class.removing]="removingItemId === item?.menuItem?.id">
+          <div class="item-image-container">
+            <div class="glow-effect"></div>
+            <div class="food-image-placeholder" [style.background-color]="getRandomPastelColor(item?.menuItem?.id ?? 0)">
+              <img *ngIf="item?.menuItem?.imageUrl" [src]="item?.menuItem?.imageUrl" alt="{{ item?.menuItem?.name }}" class="food-image">
+              <div *ngIf="!item?.menuItem?.imageUrl" class="placeholder-icon">
+                <span class="food-initial">{{ (item?.menuItem?.name ?? '').charAt(0) }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="item-content">
+            <div class="item-details">
+              <h3 class="item-name">{{ item?.menuItem?.name }}</h3>
+              <div class="taste-tags">
+                <span class="taste-tag">Delicious</span>
+                <span class="taste-tag" *ngIf="(item?.menuItem?.basePrice ?? 0) > 10">Premium</span>
+              </div>
+            </div>
+            
+            <div class="item-price-controls">
+              <div class="quantity-experience">
+                <button class="qty-btn decrease" (click)="updateQuantity(item, (item.quantity || 0) - 1)" [disabled]="item.quantity <= 1">
+                  <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                </button>
+                
+                <div class="qty-display">
+                  <input type="number" class="qty-input" [(ngModel)]="item.quantity" 
+                    (change)="updateQuantity(item, item.quantity)" min="1">
+                  <div class="qty-backdrop"></div>
+                </div>
+                
+                <button class="qty-btn increase" (click)="updateQuantity(item, (item.quantity || 0) + 1)">
+                  <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                </button>
+              </div>
+              
+              <div class="price-display">
+                <span class="price-value">${{ (item?.menuItem?.basePrice || 0) * (item?.quantity || 0) | number:'1.2-2' }}</span>
+                <span class="price-unit">${{ item?.menuItem?.basePrice }}</span>
+              </div>
+              
+              <button class="remove-item-btn" (click)="removeItem(item?.menuItem?.id!)">
+                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
+                  <path d="M3 6h18"></path>
+                  <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="action-buttons">
+        <a routerLink="/menu" class="add-more-btn">
+          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="16"></line>
+            <line x1="8" y1="12" x2="16" y2="12"></line>
+          </svg>
+          <span>Add More Items</span>
+        </a>
+        
+        <button class="clear-cart-btn" *ngIf="((cartItems$ | async) ?? []).length > 1" (click)="clearCart()">
+          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
+            <path d="M18 6L6 18"></path>
+            <path d="M6 6l12 12"></path>
+          </svg>
+          <span>Clear All</span>
+        </button>
+      </div>
+    </div>
+    
+    <div class="checkout-panel">
+      <div class="order-summary">
+        <h3 class="summary-title">Order Summary</h3>
+        
+        <div class="summary-details">
+          <div class="summary-row">
+            <span class="detail-label">Items Subtotal</span>
+            <span class="detail-value">${{ totalPrice | number:'1.2-2' }}</span>
+          </div>
+          
+          <div class="summary-row">
+            <span class="detail-label">Estimated Tax</span>
+            <span class="detail-value">${{ calculateTax() | number:'1.2-2' }}</span>
+          </div>
+          
+          <div class="delivery-option">
+            <div class="option-header">
+              <span class="option-title">Delivery</span>
+              <span class="option-value">{{ deliveryPrice > 0 ? ('$' + deliveryPrice.toFixed(2)) : 'FREE' }}</span>
+            </div>
+            <div class="delivery-time">
+              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              <span>Estimated delivery: {{ estimateDeliveryTime() }}</span>
+            </div>
+          </div>
+          
+          <div class="summary-total">
+            <span class="total-label">Total</span>
+            <span class="total-value">${{ calculateTotal() | number:'1.2-2' }}</span>
+          </div>
+        </div>
+        
+        <!-- <div class="promo-code">
+          <input type="text" placeholder="Promo Code" class="promo-input" [(ngModel)]="promoCode">
+          <button class="apply-promo" [disabled]="!promoCode">Apply</button>
+        </div> -->
+        
+        <a routerLink="/checkout" class="checkout-button">
+          <span class="btn-text">Proceed to Checkout</span>
+          <div class="animated-arrow">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </div>
+        </a>
+        
+        <div class="secure-checkout">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0110 0v4"></path>
+          </svg>
+          <span>Secure Checkout</span>
+        </div>
+      </div>
+      
+      <div class="satisfaction-guarantee">
+        <div class="guarantee-icon">
+          <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+        </div>
+        <div class="guarantee-text">
+          <h4>100% Satisfaction Guarantee</h4>
+          <p>Not delighted with your meal? We'll make it right or refund your order.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

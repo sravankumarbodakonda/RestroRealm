@@ -1,0 +1,1026 @@
+<div class="option-royal-container">
+    <!-- Simple Elegant Header Section -->
+    <header class="option-simple-header">
+        <div class="option-header-left">
+            <h1 class="option-title">Menu Options</h1>
+        </div>
+        
+        <div class="option-header-right">
+            <div class="option-search-container">
+                <i class="fas fa-search option-search-icon"></i>
+                <input 
+                    type="text" 
+                    class="option-search-field"
+                    [(ngModel)]="searchTerm" 
+                    (input)="onSearch()" 
+                    placeholder="Search options..."
+                    aria-label="Search Options"
+                />
+                <button *ngIf="searchTerm" class="option-search-clear" (click)="clearSearch()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="option-view-toggle">
+                <button 
+                    class="option-view-btn" 
+                    [class.option-view-active]="viewMode === 'card'"
+                    (click)="setViewMode('card')" 
+                    aria-label="Card View">
+                    <i class="fas fa-th-large"></i>
+                </button>
+                <button 
+                    class="option-view-btn" 
+                    [class.option-view-active]="viewMode === 'list'"
+                    (click)="setViewMode('list')" 
+                    aria-label="List View">
+                    <i class="fas fa-list"></i>
+                </button>
+            </div>
+            
+            <button 
+                *ngIf="createOption"
+                class="option-create-btn" 
+                (click)="openCreateDialog()">
+                <i class="fas fa-plus"></i>
+                <span>Add New</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- No Permission Message -->
+    <div *ngIf="!readAllOptions" class="option-no-permission">
+        <div class="option-empty-illustration">
+            <i class="fas fa-lock option-empty-icon"></i>
+        </div>
+        <h3 class="option-empty-title">Access Restricted</h3>
+        <p class="option-empty-message">You don't have permission to view menu options. Please contact an administrator if you need access.</p>
+    </div>
+
+    <ng-container *ngIf="readAllOptions">
+        <!-- Summary Panel -->
+        <div class="option-summary-panel">
+            <div class="option-summary-stat">
+                <div class="option-stat-value">{{menuOptions.length}}</div>
+                <div class="option-stat-label">Total Options</div>
+            </div>
+            <div class="option-summary-stat">
+                <div class="option-stat-value">{{getActiveOptions()}}</div>
+                <div class="option-stat-label">Active Options</div>
+            </div>
+            <div class="option-summary-stat">
+                <div class="option-stat-value">{{getInactiveOptions()}}</div>
+                <div class="option-stat-label">Inactive Options</div>
+            </div>
+            <div class="option-summary-stat">
+                <div class="option-stat-value">{{getRequiredOptions()}}</div>
+                <div class="option-stat-label">Required Options</div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <main class="option-content-area">
+            <!-- Filter Bar -->
+            <div class="option-filter-bar">
+                <div class="option-filter-group">
+                    <label class="option-filter-label">Filter by:</label>
+                    <div class="option-filter-pills">
+                        <button class="option-filter-pill" [class.option-filter-active]="currentFilter === 'all'" (click)="filterOptions('all')">All</button>
+                        <button class="option-filter-pill" [class.option-filter-active]="currentFilter === 'active'" (click)="filterOptions('active')">Active</button>
+                        <button class="option-filter-pill" [class.option-filter-active]="currentFilter === 'inactive'" (click)="filterOptions('inactive')">Inactive</button>
+                        <button class="option-filter-pill" [class.option-filter-active]="currentFilter === 'required'" (click)="filterOptions('required')">Required</button>
+                    </div>
+                </div>
+                <div class="option-sort-dropdown">
+                    <label class="option-sort-label">Sort by:</label>
+                    <select class="option-sort-select" (change)="sortOptions($event)">
+                        <option value="name-asc">Name (A-Z)</option>
+                        <option value="name-desc">Name (Z-A)</option>
+                        <option value="choices-desc">Most Choices</option>
+                        <option value="choices-asc">Fewest Choices</option>
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div *ngIf="loading" class="option-loading">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span>Loading options...</span>
+            </div>
+
+            <!-- Option Grid/List -->
+            <div *ngIf="!loading" [class]="viewMode === 'card' ? 'option-grid-container' : 'option-list-container'">
+                <!-- Card View -->
+                <div *ngIf="viewMode === 'card'" class="option-grid">
+                    <article 
+                        *ngFor="let option of paginatedOptions"
+                        class="option-card"
+                        [class.option-inactive]="!option.active">
+                        
+                        <div class="option-card-header">
+                            <div class="option-card-badges">
+                                <span *ngIf="!option.active" class="option-badge option-badge-inactive">
+                                    <i class="fas fa-ban"></i> Inactive
+                                </span>
+                                <span *ngIf="option.required" class="option-badge option-badge-required">
+                                    <i class="fas fa-asterisk"></i> Required
+                                </span>
+                            </div>
+                            <h2 class="option-card-title">{{ option.name || option.optionName }}</h2>
+                        </div>
+                        
+                        <div class="option-card-content">
+                            <p class="option-card-description">{{ option.description || 'No description provided' }}</p>
+                            
+                            <div class="option-card-details">
+                                <div class="option-detail-item">
+                                    <span class="option-detail-label">Type:</span>
+                                    <span class="option-detail-value">{{getSelectionTypeLabel(option.selectionType)}}</span>
+                                </div>
+                                <div class="option-detail-item">
+                                    <span class="option-detail-label">Display:</span>
+                                    <span class="option-detail-value">{{getDisplayStyleLabel(option.displayStyle)}}</span>
+                                </div>
+                                <div class="option-detail-item">
+                                    <span class="option-detail-label">Choices:</span>
+                                    <span class="option-detail-value">{{option.choices.length || 0}}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="option-choices-preview" *ngIf="option.choices && option.choices.length > 0">
+                                <div class="option-choice-chips">
+                                    <span *ngFor="let choice of option.choices.slice(0, 3)" class="option-choice-chip">
+                                        {{choice.choiceName}}
+                                        <span *ngIf="choice.additionalPrice > 0" class="option-choice-price">+${{formatPrice(choice.additionalPrice)}}</span>
+                                    </span>
+                                    <span *ngIf="option.choices.length > 3" class="option-choice-more">
+                                        +{{option.choices.length - 3}} more
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="option-card-actions">
+                                <button 
+                                    *ngIf="readSingleOption"
+                                    class="option-action-btn option-view-btn-secondary"
+                                    (click)="viewDetails(option)"
+                                    aria-label="View details">
+                                    <i class="fas fa-eye"></i>
+                                    <span class="option-action-label">View</span>
+                                </button>
+                                <button 
+                                    *ngIf="editOption"
+                                    class="option-action-btn option-edit-btn"
+                                    (click)="openEditDialog(option)"
+                                    aria-label="Edit option">
+                                    <i class="fas fa-edit"></i>
+                                    <span class="option-action-label">Edit</span>
+                                </button>
+                                <button 
+                                    *ngIf="deleteSingleOption"
+                                    class="option-action-btn option-delete-btn"
+                                    (click)="confirmDelete(option)"
+                                    aria-label="Delete option">
+                                    <i class="fas fa-trash"></i>
+                                    <span class="option-action-label">Delete</span>
+                                </button>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+                
+                <!-- List View -->
+                <div *ngIf="viewMode === 'list'" class="option-list">
+                    <div class="option-list-header">
+                        <div class="option-list-cell option-cell-name">Name</div>
+                        <div class="option-list-cell option-cell-type">Type</div>
+                        <div class="option-list-cell option-cell-choices">Choices</div>
+                        <div class="option-list-cell option-cell-status">Status</div>
+                        <div class="option-list-cell option-cell-actions">Actions</div>
+                    </div>
+                    
+                    <div 
+                        *ngFor="let option of paginatedOptions"
+                        class="option-list-row"
+                        [class.option-inactive]="!option.active">
+                        
+                        <div class="option-list-cell option-cell-name">
+                            <h3 class="option-list-title">{{ option.name || option.optionName }}</h3>
+                            <p class="option-list-description">{{ option.description || 'No description provided' }}</p>
+                        </div>
+                        
+                        <div class="option-list-cell option-cell-type">
+                            <div class="option-type-info">
+                                <div>{{getSelectionTypeLabel(option.selectionType)}}</div>
+                                <div class="option-type-display">{{getDisplayStyleLabel(option.displayStyle)}}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="option-list-cell option-cell-choices">
+                            <div class="option-choices-count">
+                                <span class="option-count-number">{{option.choices.length || 0}}</span>
+                                <span class="option-count-label">choices</span>
+                            </div>
+                            <div class="option-choices-preview" *ngIf="option.choices && option.choices.length > 0">
+                                <div *ngFor="let choice of option.choices.slice(0, 2)" class="option-choice-item">
+                                    {{choice.choiceName}}
+                                    <span *ngIf="choice.additionalPrice > 0" class="option-choice-price">+${{formatPrice(choice.additionalPrice)}}</span>
+                                </div>
+                                <div *ngIf="option.choices.length > 2" class="option-choices-more">+ {{option.choices.length - 2}} more</div>
+                            </div>
+                        </div>
+                        
+                        <div class="option-list-cell option-cell-status">
+                            <div class="option-status-container">
+                                <span 
+                                    class="option-status-indicator" 
+                                    [class.option-status-active]="option.active"
+                                    [class.option-status-inactive]="!option.active">
+                                </span>
+                                <span class="option-status-text">
+                                    {{ option.active ? 'Active' : 'Inactive' }}
+                                </span>
+                                <span *ngIf="option.required" class="option-required-indicator">
+                                    <i class="fas fa-asterisk"></i>
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="option-list-cell option-cell-actions">
+                            <div class="option-list-actions">
+                                <button 
+                                    *ngIf="readSingleOption"
+                                    class="option-list-btn option-view-btn-secondary"
+                                    (click)="viewDetails(option)"
+                                    aria-label="View details">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button 
+                                    *ngIf="editOption"
+                                    class="option-list-btn option-edit-btn"
+                                    (click)="openEditDialog(option)"
+                                    aria-label="Edit option">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button 
+                                    *ngIf="deleteSingleOption"
+                                    class="option-list-btn option-delete-btn"
+                                    (click)="confirmDelete(option)"
+                                    aria-label="Delete option">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Empty State -->
+            <div *ngIf="!loading && filteredOptions.length === 0" class="option-empty-state">
+                <div class="option-empty-illustration">
+                    <i class="fas fa-sliders-h option-empty-icon"></i>
+                </div>
+                <h3 class="option-empty-title">No Options Found</h3>
+                <p class="option-empty-message">Your search didn't match any options in your collection</p>
+                <button class="option-empty-action" (click)="clearSearch()">Clear Search</button>
+            </div>
+            
+            <!-- Pagination -->
+            <div *ngIf="!loading && filteredOptions.length > 0" class="option-pagination">
+                <div class="option-pagination-info">
+                    Showing {{ (currentPage - 1) * pageSize + 1 }} to {{ Math.min(currentPage * pageSize, filteredOptions.length) }} of {{ filteredOptions.length }} options
+                </div>
+                <div class="option-pagination-controls">
+                    <button 
+                        class="option-page-btn option-prev-btn" 
+                        [disabled]="currentPage === 1"
+                        (click)="goToPage(currentPage - 1)">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    
+                    <div class="option-page-numbers">
+                        <button 
+                            *ngIf="currentPage > 2"
+                            class="option-page-number" 
+                            (click)="goToPage(1)">
+                            1
+                        </button>
+                        
+                        <span *ngIf="currentPage > 3" class="option-page-ellipsis">...</span>
+                        
+                        <button 
+                            *ngIf="currentPage > 1"
+                            class="option-page-number" 
+                            (click)="goToPage(currentPage - 1)">
+                            {{ currentPage - 1 }}
+                        </button>
+                        
+                        <button class="option-page-number option-page-current">
+                            {{ currentPage }}
+                        </button>
+                        
+                        <button 
+                            *ngIf="currentPage < totalPages"
+                            class="option-page-number" 
+                            (click)="goToPage(currentPage + 1)">
+                            {{ currentPage + 1 }}
+                        </button>
+                        
+                        <span *ngIf="currentPage < totalPages - 2" class="option-page-ellipsis">...</span>
+                        
+                        <button 
+                            *ngIf="currentPage < totalPages - 1"
+                            class="option-page-number" 
+                            (click)="goToPage(totalPages)">
+                            {{ totalPages }}
+                        </button>
+                    </div>
+                    
+                    <button 
+                        class="option-page-btn option-next-btn"
+                        [disabled]="currentPage === totalPages" 
+                        (click)="goToPage(currentPage + 1)">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+                
+                <div class="option-page-size">
+                    <label for="pageSize" class="option-page-size-label">Items per page:</label>
+                    <select id="pageSize" class="option-page-size-select" [(ngModel)]="pageSize" (change)="updatePageSize()">
+                        <option value="6">6</option>
+                        <option value="12">12</option>
+                        <option value="24">24</option>
+                        <option value="48">48</option>
+                    </select>
+                </div>
+            </div>
+        </main>
+    </ng-container>
+
+    <!-- Create/Edit Dialog -->
+    <div class="option-modal-backdrop" *ngIf="showDialog" (click)="closeDialogIfBackdrop($event)">
+        <div class="option-modal-container" (click)="$event.stopPropagation()">
+            <div class="option-modal-header">
+                <h2 class="option-modal-title">{{ editingOption ? 'Edit Option' : 'Create New Option' }}</h2>
+                <button class="option-modal-close" (click)="closeDialog()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="option-modal-divider"></div>
+            
+            <div class="option-modal-body">
+                <form [formGroup]="optionForm" (ngSubmit)="onSubmit()" class="option-form">
+                    <div class="option-form-columns">
+                        <div class="option-form-left">
+                            <div class="option-form-group">
+                                <label class="option-form-label">Option Name <span class="option-required-mark">*</span></label>
+                                <input 
+                                    type="text" 
+                                    formControlName="name"
+                                    class="option-form-input"
+                                    [class.option-input-error]="optionForm.get('name')?.invalid && optionForm.get('name')?.touched"
+                                    placeholder="Enter option name"
+                                />
+                                <div *ngIf="optionForm.get('name')?.invalid && optionForm.get('name')?.touched" class="option-error-message">
+                                    <span *ngIf="optionForm.get('name')?.errors?.['required']">Name is required</span>
+                                    <span *ngIf="optionForm.get('name')?.errors?.['minlength']">Name must be at least 3 characters</span>
+                                    <span *ngIf="optionForm.get('name')?.errors?.['maxlength']">Name cannot exceed 50 characters</span>
+                                </div>
+                            </div>
+
+                            <div class="option-form-group">
+                                <label class="option-form-label">Description</label>
+                                <textarea 
+                                    formControlName="description"
+                                    class="option-form-textarea"
+                                    placeholder="Enter option description"
+                                    rows="3"
+                                ></textarea>
+                                <div *ngIf="optionForm.get('description')?.invalid && optionForm.get('description')?.touched" class="option-error-message">
+                                    <span *ngIf="optionForm.get('description')?.errors?.['maxlength']">Description cannot exceed 500 characters</span>
+                                </div>
+                                <div class="option-char-counter" [class.option-char-limit]="(optionForm.get('description')?.value?.length || 0) > 450">
+                                    {{ optionForm.get('description')?.value?.length || 0 }}/500
+                                </div>
+                            </div>
+
+                            <div class="option-form-columns">
+                                <div class="option-form-left">
+                                    <div class="option-form-group">
+                                        <label class="option-form-label">Required Option</label>
+                                        <div class="option-toggle-container">
+                                            <label class="option-toggle">
+                                                <input type="checkbox" formControlName="required">
+                                                <span class="option-toggle-slider"></span>
+                                            </label>
+                                            <span class="option-toggle-label">{{ optionForm.get('required')?.value ? 'Required' : 'Optional' }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            
+                                <div class="option-form-right">
+                                    <div class="option-form-group">
+                                        <label class="option-form-label">Status</label>
+                                        <div class="option-toggle-container">
+                                            <label class="option-toggle">
+                                                <input type="checkbox" formControlName="active">
+                                                <span class="option-toggle-slider"></span>
+                                            </label>
+                                            <span class="option-toggle-label">{{ optionForm.get('active')?.value ? 'Active' : 'Inactive' }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="option-form-columns">
+                                <div class="option-form-left">
+                                    <div class="option-form-group">
+                                        <label class="option-form-label">Selection Type <span class="option-required-mark">*</span></label>
+                                        <select 
+                                            formControlName="selectionType"
+                                            class="option-form-select">
+                                            <option *ngFor="let type of selectionTypeOptions" [value]="type.value">{{type.label}}</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            
+                                <div class="option-form-right">
+                                    <div class="option-form-group">
+                                        <label class="option-form-label">Display Style <span class="option-required-mark">*</span></label>
+                                        <select 
+                                            formControlName="displayStyle"
+                                            class="option-form-select">
+                                            <option *ngFor="let style of displayStyleOptions" [value]="style.value">{{style.label}}</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="option-form-columns" *ngIf="optionForm.get('selectionType')?.value !== 'SINGLE'">
+                                <div class="option-form-left">
+                                    <div class="option-form-group">
+                                        <label class="option-form-label">Min Selection</label>
+                                        <input 
+                                            type="number" 
+                                            min="0"
+                                            formControlName="minSelect"
+                                            class="option-form-input"
+                                            [class.option-input-error]="optionForm.get('minSelect')?.invalid && optionForm.get('minSelect')?.touched"
+                                        />
+                                        <div *ngIf="optionForm.get('minSelect')?.invalid && optionForm.get('minSelect')?.touched" class="option-error-message">
+                                            <span *ngIf="optionForm.get('minSelect')?.errors?.['min']">Minimum selection cannot be negative</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            
+                                <div class="option-form-right">
+                                    <div class="option-form-group">
+                                        <label class="option-form-label">Max Selection</label>
+                                        <input 
+                                            type="number" 
+                                            min="1"
+                                            formControlName="maxSelect"
+                                            class="option-form-input"
+                                            [class.option-input-error]="optionForm.get('maxSelect')?.invalid && optionForm.get('maxSelect')?.touched"
+                                        />
+                                        <div *ngIf="optionForm.get('maxSelect')?.invalid && optionForm.get('maxSelect')?.touched" class="option-error-message">
+                                            <span *ngIf="optionForm.get('maxSelect')?.errors?.['min']">Maximum selection must be at least 1</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div *ngIf="optionForm.errors?.['minGreaterThanMax']" class="option-error-message option-form-error">
+                                Minimum selection cannot be greater than maximum selection
+                            </div>
+                            
+                            <div *ngIf="optionForm.errors?.['maxGreaterThanChoices']" class="option-error-message option-form-error">
+                                Maximum selection cannot be greater than the number of choices
+                            </div>
+                        </div>
+                        
+                        <div class="option-form-right">
+                            <!-- Option Choices Section -->
+                            <div class="option-choices-section">
+                                <div class="option-section-header">
+                                    <h3 class="option-section-title">Choices</h3>
+                                    <button type="button" class="option-add-choice-btn" (click)="openChoiceDialog()">
+                                        <i class="fas fa-plus"></i> Add Choice
+                                    </button>
+                                </div>
+                                
+                                <div class="option-choices-list">
+                                    <div *ngIf="choicesFormArray.length === 0" class="option-no-choices">
+                                        <p>No choices added yet. Click "Add Choice" to create options for this menu option.</p>
+                                    </div>
+                                    
+                                    <div *ngFor="let choice of choicesFormArray.controls; let i = index" class="option-choice-card">
+                                        <div class="option-choice-content">
+                                            <h4 class="option-choice-name">{{choice.get('choiceName')?.value}}</h4>
+                                            <div class="option-choice-info">
+                                                <div class="option-choice-price" *ngIf="choice.get('additionalPrice')?.value > 0">
+                                                    +${{formatPrice(choice.get('additionalPrice')?.value)}}
+                                                </div>
+                                                <div class="option-choice-status">
+                                                    <span *ngIf="choice.get('default')?.value" class="option-choice-default">
+                                                        <i class="fas fa-check-circle"></i> Default
+                                                    </span>
+                                                    <span *ngIf="!choice.get('active')?.value" class="option-choice-inactive">
+                                                        Inactive
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <p class="option-choice-description" *ngIf="choice.get('description')?.value">
+                                                {{choice.get('description')?.value}}
+                                            </p>
+                                        </div>
+                                        <div class="option-choice-actions">
+                                            <button type="button" class="option-choice-edit" (click)="editChoice(i)">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button type="button" class="option-choice-remove" (click)="removeChoice(i)">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Image Upload Section -->
+                            <div class="option-image-upload">
+                                <label class="option-form-label">Option Image</label>
+                                
+                                <div class="option-image-preview-container">
+                                    <div class="option-image-preview" [class.option-has-image]="imagePreview || (editingOption && editingOption.imagePath)">
+                                        <img 
+                                            *ngIf="imagePreview" 
+                                            [src]="imagePreview" 
+                                            alt="Image preview" 
+                                            class="option-preview-img"
+                                        />
+                                        <img 
+                                            *ngIf="!imagePreview && editingOption && editingOption.imagePath" 
+                                            [src]="getImagePath(editingOption)" 
+                                            alt="Current image" 
+                                            class="option-preview-img"
+                                            (error)="handlePreviewError($event)"
+                                        />
+                                        <div *ngIf="!imagePreview && (!editingOption || !editingOption.imagePath)" class="option-no-image">
+                                            <i class="fas fa-image"></i>
+                                            <span>No image selected</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="option-image-tabs">
+                                    <button 
+                                        type="button"
+                                        class="option-image-tab" 
+                                        [class.option-tab-active]="imageInputType === 'file'"
+                                        (click)="setImageInputType('file')">
+                                        Upload Image
+                                    </button>
+                                    <button 
+                                        type="button"
+                                        class="option-image-tab" 
+                                        [class.option-tab-active]="imageInputType === 'url'"
+                                        (click)="setImageInputType('url')">
+                                        Image URL
+                                    </button>
+                                </div>
+                                
+                                <div *ngIf="imageInputType === 'file'" class="option-file-upload">
+                                    <label class="option-upload-btn">
+                                        <input 
+                                            type="file" 
+                                            (change)="onImageSelect($event)"
+                                            accept="image/*"
+                                            hidden
+                                        />
+                                        <i class="fas fa-upload"></i>
+                                        <span>{{ optionForm.get('image')?.value ? 'Change Image' : 'Select Image' }}</span>
+                                    </label>
+                                    <span *ngIf="optionForm.get('image')?.value" class="option-filename">
+                                        {{ getFileName() }}
+                                    </span>
+                                </div>
+                                
+                                <div *ngIf="imageInputType === 'url'" class="option-url-input">
+                                    <input 
+                                        type="text" 
+                                        class="option-form-input"
+                                        formControlName="imageUrl"
+                                        placeholder="Enter image URL"
+                                        (blur)="updateImagePreviewFromUrl()"
+                                    />
+                                    <button 
+                                        type="button"
+                                        class="option-preview-url-btn"
+                                        (click)="updateImagePreviewFromUrl()">
+                                        Preview
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="option-modal-divider"></div>
+                    
+                    <div class="option-form-actions">
+                        <button 
+                            type="button" 
+                            class="option-btn-secondary"
+                            (click)="closeDialog()">
+                            Cancel
+                        </button>
+                        <button 
+                            type="submit" 
+                            class="option-btn-primary"
+                            [disabled]="optionForm.invalid || loading || formSubmitting || choicesFormArray.length === 0">
+                            <span *ngIf="!loading && !formSubmitting">{{ editingOption ? 'Update Option' : 'Create Option' }}</span>
+                            <span *ngIf="loading || formSubmitting" class="option-btn-loader">
+                                <i class="fas fa-spinner fa-spin"></i> Saving...
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Choice Dialog -->
+    <div class="option-modal-backdrop" *ngIf="showChoiceDialog" (click)="closeChoiceDialog($event)">
+        <div class="option-modal-container option-choice-modal" (click)="$event.stopPropagation()">
+            <div class="option-modal-header">
+                <h2 class="option-modal-title">{{ editingChoiceIndex !== null ? 'Edit Choice' : 'Add New Choice' }}</h2>
+                <button class="option-modal-close" (click)="closeChoiceDialog()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="option-modal-divider"></div>
+            
+            <div class="option-modal-body">
+                <form [formGroup]="choiceForm" (ngSubmit)="saveChoice()" class="option-form">
+                    <div class="option-form-group">
+                        <label class="option-form-label">Choice Name <span class="option-required-mark">*</span></label>
+                        <input 
+                            type="text" 
+                            formControlName="choiceName"
+                            class="option-form-input"
+                            [class.option-input-error]="choiceForm.get('choiceName')?.invalid && choiceForm.get('choiceName')?.touched"
+                            placeholder="Enter choice name"
+                        />
+                        <div *ngIf="choiceForm.get('choiceName')?.invalid && choiceForm.get('choiceName')?.touched" class="option-error-message">
+                            <span *ngIf="choiceForm.get('choiceName')?.errors?.['required']">Name is required</span>
+                            <span *ngIf="choiceForm.get('choiceName')?.errors?.['minlength']">Name must be at least 2 characters</span>
+                            <span *ngIf="choiceForm.get('choiceName')?.errors?.['maxlength']">Name cannot exceed 50 characters</span>
+                        </div>
+                    </div>
+
+                    <div class="option-form-group">
+                        <label class="option-form-label">Description</label>
+                        <textarea 
+                            formControlName="description"
+                            class="option-form-textarea"
+                            placeholder="Enter choice description"
+                            rows="3"
+                        ></textarea>
+                        <div *ngIf="choiceForm.get('description')?.invalid && choiceForm.get('description')?.touched" class="option-error-message">
+                            <span *ngIf="choiceForm.get('description')?.errors?.['maxlength']">Description cannot exceed 200 characters</span>
+                        </div>
+                        <div class="option-char-counter" [class.option-char-limit]="(choiceForm.get('description')?.value?.length || 0) > 180">
+                            {{ choiceForm.get('description')?.value?.length || 0 }}/200
+                        </div>
+                    </div>
+                    
+                    <div class="option-form-group">
+                        <label class="option-form-label">Additional Price ($)</label>
+                        <input 
+                            type="number" 
+                            step="0.01"
+                            min="0"
+                            formControlName="additionalPrice"
+                            class="option-form-input"
+                            [class.option-input-error]="choiceForm.get('additionalPrice')?.invalid && choiceForm.get('additionalPrice')?.touched"
+                            placeholder="0.00"
+                        />
+                        <div *ngIf="choiceForm.get('additionalPrice')?.invalid && choiceForm.get('additionalPrice')?.touched" class="option-error-message">
+                            <span *ngIf="choiceForm.get('additionalPrice')?.errors?.['min']">Price cannot be negative</span>
+                        </div>
+                    </div>
+                    
+                    <div class="option-form-row">
+                        <div class="option-form-half">
+                            <div class="option-form-group">
+                                <label class="option-form-label">Default Choice</label>
+                                <div class="option-toggle-container">
+                                    <label class="option-toggle">
+                                        <input type="checkbox" formControlName="default">
+                                        <span class="option-toggle-slider"></span>
+                                    </label>
+                                    <span class="option-toggle-label">{{ choiceForm.get('default')?.value ? 'Default' : 'Not Default' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="option-form-half">
+                            <div class="option-form-group">
+                                <label class="option-form-label">Status</label>
+                                <div class="option-toggle-container">
+                                    <label class="option-toggle">
+                                        <input type="checkbox" formControlName="active">
+                                        <span class="option-toggle-slider"></span>
+                                    </label>
+                                    <span class="option-toggle-label">{{ choiceForm.get('active')?.value ? 'Active' : 'Inactive' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Image Upload -->
+                    <div class="option-image-upload">
+                        <label class="option-form-label">Choice Image</label>
+                        
+                        <div class="option-image-preview-container">
+                            <div class="option-image-preview" [class.option-has-image]="imagePreview">
+                                <img 
+                                    *ngIf="imagePreview" 
+                                    [src]="imagePreview" 
+                                    alt="Image preview" 
+                                    class="option-preview-img"
+                                />
+                                <div *ngIf="!imagePreview" class="option-no-image">
+                                    <i class="fas fa-image"></i>
+                                    <span>No image selected</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="option-image-tabs">
+                            <button 
+                                type="button"
+                                class="option-image-tab" 
+                                [class.option-tab-active]="imageInputType === 'file'"
+                                (click)="setImageInputType('file')">
+                                Upload Image
+                            </button>
+                            <button 
+                                type="button"
+                                class="option-image-tab" 
+                                [class.option-tab-active]="imageInputType === 'url'"
+                                (click)="setImageInputType('url')">
+                                Image URL
+                            </button>
+                        </div>
+                        
+                        <div *ngIf="imageInputType === 'file'" class="option-file-upload">
+                            <label class="option-upload-btn">
+                                <input 
+                                    type="file" 
+                                    (change)="onImageSelect($event)"
+                                    accept="image/*"
+                                    hidden
+                                />
+                                <i class="fas fa-upload"></i>
+                                <span>{{ choiceForm.get('image')?.value ? 'Change Image' : 'Select Image' }}</span>
+                            </label>
+                            <span *ngIf="choiceForm.get('image')?.value" class="option-filename">
+                                {{ getFileName() }}
+                            </span>
+                        </div>
+                        
+                        <div *ngIf="imageInputType === 'url'" class="option-url-input">
+                            <input 
+                                type="text" 
+                                class="option-form-input"
+                                formControlName="imageUrl"
+                                placeholder="Enter image URL"
+                                (blur)="updateImagePreviewFromUrl()"
+                            />
+                            <button 
+                                type="button"
+                                class="option-preview-url-btn"
+                                (click)="updateImagePreviewFromUrl()">
+                                Preview
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="option-modal-divider"></div>
+                    
+                    <div class="option-form-actions">
+                        <button 
+                            type="button" 
+                            class="option-btn-secondary"
+                            (click)="closeChoiceDialog()">
+                            Cancel
+                        </button>
+                        <button 
+                            type="submit" 
+                            class="option-btn-primary"
+                            [disabled]="choiceForm.invalid">
+                            {{ editingChoiceIndex !== null ? 'Update Choice' : 'Add Choice' }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Option Details Modal -->
+    <div class="option-modal-backdrop" *ngIf="showDetailsModal" (click)="closeDetailsModal($event)">
+        <div class="option-modal-container option-details-modal" (click)="$event.stopPropagation()">
+            <div class="option-modal-header">
+                <h2 class="option-modal-title">Option Details</h2>
+                <button class="option-modal-close" (click)="closeDetailsModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="option-modal-divider"></div>
+            
+            <div class="option-modal-body" *ngIf="selectedOption">
+                <div class="option-details-content">
+                    <div class="option-details-header">
+                        <h3 class="option-details-name">{{ selectedOption.name || selectedOption.optionName }}</h3>
+                        
+                        <div class="option-details-badges">
+                            <span [class.option-badge-active]="selectedOption.active" [class.option-badge-inactive]="!selectedOption.active" class="option-badge">
+                                <i [class]="selectedOption.active ? 'fas fa-check-circle' : 'fas fa-ban'"></i> 
+                                {{ selectedOption.active ? 'Active' : 'Inactive' }}
+                            </span>
+                            <span *ngIf="selectedOption.required" class="option-badge option-badge-required">
+                                <i class="fas fa-asterisk"></i> Required
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="option-details-description" *ngIf="selectedOption.description">
+                        <p>{{ selectedOption.description }}</p>
+                    </div>
+                    
+                    <div class="option-details-info">
+                        <div class="option-details-section">
+                            <h4 class="option-details-section-title">Configuration</h4>
+                            <div class="option-details-info-grid">
+                                <div class="option-details-info-item">
+                                    <span class="option-details-label">Selection Type:</span>
+                                    <span class="option-details-value">{{ getSelectionTypeLabel(selectedOption.selectionType) }}</span>
+                                </div>
+                                <div class="option-details-info-item">
+                                    <span class="option-details-label">Display Style:</span>
+                                    <span class="option-details-value">{{ getDisplayStyleLabel(selectedOption.displayStyle) }}</span>
+                                </div>
+                                <div class="option-details-info-item" *ngIf="selectedOption.selectionType !== 'SINGLE'">
+                                    <span class="option-details-label">Min Selection:</span>
+                                    <span class="option-details-value">{{ selectedOption.minSelect || 0 }}</span>
+                                </div>
+                                <div class="option-details-info-item" *ngIf="selectedOption.selectionType !== 'SINGLE'">
+                                    <span class="option-details-label">Max Selection:</span>
+                                    <span class="option-details-value">{{ selectedOption.maxSelect || 1 }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="option-details-section">
+                            <h4 class="option-details-section-title">
+                                Choices 
+                                <span class="option-details-count">{{ selectedOption.choices.length || 0 }}</span>
+                            </h4>
+                            
+                            <div *ngIf="!selectedOption.choices || selectedOption.choices.length === 0" class="option-details-no-items">
+                                No choices have been added to this option.
+                            </div>
+                            
+                            <div class="option-details-choices">
+                                <div *ngFor="let choice of selectedOption.choices" class="option-details-choice">
+                                    <div class="option-details-choice-header">
+                                        <h5 class="option-details-choice-name">
+                                            {{ choice.choiceName }}
+                                            <span *ngIf="choice.default" class="option-details-choice-default">
+                                                <i class="fas fa-check-circle"></i> Default
+                                            </span>
+                                        </h5>
+                                        <div class="option-details-choice-price" *ngIf="choice.additionalPrice > 0">
+                                            +${{ formatPrice(choice.additionalPrice) }}
+                                        </div>
+                                    </div>
+                                    <div class="option-details-choice-content">
+                                        <p *ngIf="choice.description" class="option-details-choice-description">
+                                            {{ choice.description }}
+                                        </p>
+                                        <div class="option-details-choice-status" *ngIf="!choice.active">
+                                            <span class="option-details-choice-inactive">Inactive</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="option-details-section" *ngIf="selectedOption.categories && selectedOption.categories.length > 0">
+                            <h4 class="option-details-section-title">Available in Categories</h4>
+                            <div class="option-details-categories">
+                                <div class="option-category-chip" *ngFor="let category of selectedOption.categories">
+                                    {{category.name}}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="option-modal-divider"></div>
+            
+            <div class="option-details-actions">
+                <button 
+                    *ngIf="editOption"
+                    class="option-btn-secondary"
+                    (click)="editFromDetails()">
+                    <i class="fas fa-edit"></i> Edit Option
+                </button>
+                <button 
+                    class="option-btn-primary"
+                    (click)="closeDetailsModal()">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="option-modal-backdrop" *ngIf="showDeleteConfirmation" (click)="cancelDelete($event)">
+        <div class="option-modal-container option-delete-modal" (click)="$event.stopPropagation()">
+            <div class="option-modal-header">
+                <h2 class="option-modal-title option-delete-title">Confirm Deletion</h2>
+                <button class="option-modal-close" (click)="cancelDelete()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="option-modal-divider"></div>
+            
+            <div class="option-modal-body">
+                <div class="option-delete-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                
+                <h3 class="option-delete-heading">Are you sure you want to delete this option?</h3>
+                
+                <p class="option-delete-message">
+                    You are about to delete "<strong>{{ optionToDelete?.name || optionToDelete?.optionName }}</strong>". 
+                    This action cannot be undone and this option will be removed from all menu items that use it.
+                </p>
+                
+                <div class="option-delete-details">
+                    <h4 class="option-delete-subheading">Option Details:</h4>
+                    <ul class="option-delete-info">
+                        <li>Type: {{ optionToDelete ? getSelectionTypeLabel(optionToDelete.selectionType) : '' }}</li>
+                        <li>Status: {{ optionToDelete?.active ? 'Active' : 'Inactive' }}</li>
+                        <li>Required: {{ optionToDelete?.required ? 'Yes' : 'No' }}</li>
+                        <li>Choices: {{ optionToDelete?.choices?.length || 0 }}</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="option-modal-divider"></div>
+            
+            <div class="option-delete-actions">
+                <button 
+                    class="option-btn-secondary"
+                    (click)="cancelDelete()">
+                    Cancel
+                </button>
+                <button 
+                    class="option-btn-danger"
+                    [disabled]="deletingOption"
+                    (click)="proceedWithDelete()">
+                    <span *ngIf="!deletingOption">
+                        <i class="fas fa-trash"></i> Delete Permanently
+                    </span>
+                    <span *ngIf="deletingOption" class="option-btn-loader">
+                        <i class="fas fa-spinner fa-spin"></i> Deleting...
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div *ngIf="toast" class="option-toast" [class.option-toast-success]="toast.type === 'success'" [class.option-toast-error]="toast.type === 'error'">
+        <div class="option-toast-icon">
+            <i *ngIf="toast.type === 'success'" class="fas fa-check-circle"></i>
+            <i *ngIf="toast.type === 'error'" class="fas fa-exclamation-circle"></i>
+        </div>
+        <div class="option-toast-content">
+            <p class="option-toast-message">{{ toast.message }}</p>
+        </div>
+        <button class="option-toast-close" (click)="dismissToast()">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="option-toast-progress"></div>
+    </div>
+</div>

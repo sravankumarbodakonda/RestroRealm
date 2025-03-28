@@ -1,0 +1,61 @@
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px; 
+    width: 100%;
+    margin: 0 auto;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    transition: padding-left 0.3s ease-in-out;
+    padding-left: 60px;
+}
+
+.main-content .sidebar-expanded {
+    padding-left: 250px;
+}
+
+.footer {
+    width: 100%;
+    margin-top: auto;
+}
+
+.app-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Content wrapper styles - to be adjusted with sidebar */
+  .content-wrapper {
+    flex: 1;
+    padding-top: 70px; /* Same as navbar height */
+    margin-left: 60px; /* Same as collapsed sidebar width */
+    transition: margin-left 0.3s ease;
+  }
+  
+  .content-wrapper.sidebar-expanded {
+    margin-left: 250px; /* Same as expanded sidebar width */
+  }
+  
+  /* For mobile devices */
+  @media (max-width: 992px) {
+    .content-wrapper, 
+    .content-wrapper.sidebar-expanded {
+      margin-left: 0;
+    }
+  }
+  
+  /* Utility classes for sidebar state */
+  .sidebar-expanded .has-sidebar-adjustment {
+    margin-left: 250px;
+    width: calc(100% - 250px);
+  }
+  
+  @media (max-width: 992px) {
+    .sidebar-expanded .has-sidebar-adjustment {
+      margin-left: 0;
+      width: 100%;
+    }
+  }

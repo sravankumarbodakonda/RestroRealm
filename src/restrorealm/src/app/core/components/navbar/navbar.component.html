@@ -1,0 +1,246 @@
+<header class="restro-header">
+    <!-- Logo and toggle buttons -->
+    <div class="header-left">
+      <!-- Sidebar Toggle (only visible when logged in) -->
+      <button *ngIf="isLoggedIn" 
+              class="sidebar-toggle" 
+              [class.active]="isSidebarOpen"
+              (click)="toggleSidebar()" 
+              aria-label="Toggle dashboard sidebar">
+        <i class="fas fa-bars"></i>
+      </button>
+      
+      <div class="brand-logo">
+        <a routerLink="/">
+          <span class="logo-icon">R</span>
+          <span class="logo-text">RestroRealm</span>
+        </a>
+      </div>
+    </div>
+  
+    <!-- Main Navigation -->
+    <nav class="main-nav" role="navigation" aria-label="Main navigation">
+      <ul class="nav-menu">
+        <li class="nav-item">
+          <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+            <span class="nav-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              </svg>
+            </span>
+            <span class="nav-text">Home</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a routerLink="/categories" routerLinkActive="active">
+            <span class="nav-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              </svg>
+            </span>
+            <span class="nav-text">Categories</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a routerLink="/menu" routerLinkActive="active">
+            <span class="nav-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              </svg>
+            </span>
+            <span class="nav-text">Menu</span>
+          </a>
+        </li>
+        <li class="nav-item reservation-item">
+          <a routerLink="/reservation" routerLinkActive="active">
+            <span class="nav-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              </svg>
+            </span>
+            <span class="nav-text">Reserve</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a routerLink="/contact" routerLinkActive="active">
+            <span class="nav-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              </svg>
+            </span>
+            <span class="nav-text">Contact</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a routerLink="/about" routerLinkActive="active">
+            <span class="nav-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              </svg>
+            </span>
+            <span class="nav-text">About</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+  
+    <!-- Right side actions -->
+    <div class="header-right">
+      <!-- Nav Menu Toggle (only visible on mobile) -->
+      <button class="nav-menu-toggle" (click)="toggleMobileMenu()" aria-label="Toggle navigation menu">
+        <i class="fas fa-ellipsis-h"></i>
+      </button>
+      
+      <!-- Cart with 3D effect -->
+      <div class="cart-wrapper">
+        <a routerLink="/cart" class="cart-button" [class.pulse]="cartCount > 0" aria-label="Shopping cart" title="View cart items">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+            <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+          <span *ngIf="cartCount > 0" class="cart-badge" aria-live="polite">{{ cartCount }}</span>
+        </a>
+      </div>
+  
+      <!-- Profile or auth buttons -->
+      <div *ngIf="isLoggedIn; else loginButtons" class="profile-wrapper">
+        <button class="profile-toggle" 
+                (click)="toggleProfileDropdown($event)" 
+                aria-haspopup="true" 
+                [attr.aria-expanded]="showProfileDropdown"
+                title="Open user menu">
+          <div class="profile-avatar" aria-hidden="true">
+            <span *ngIf="!user?.profilePicture">{{ getUserInitials() }}</span>
+            <img *ngIf="user?.profilePicture" [src]="user?.profilePicture" [alt]="'Profile picture of ' + user?.name">
+          </div>
+          <span class="profile-name">{{ user?.name }}</span>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" width="16" height="16" class="dropdown-arrow" [class.active]="showProfileDropdown" aria-hidden="true">
+            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" fill="currentColor"/>
+          </svg>
+        </button>
+  
+        <!-- Profile dropdown -->
+        <div *ngIf="showProfileDropdown" class="profile-dropdown" role="menu" aria-label="User menu">
+          <div class="dropdown-header">
+            <div class="profile-avatar large" aria-hidden="true">
+              <span *ngIf="!user?.profilePicture">{{ getUserInitials() }}</span>
+              <img *ngIf="user?.profilePicture" [src]="user?.profilePicture" [alt]="'Profile picture of ' + user?.name">
+            </div>
+            <div class="user-details">
+              <h3>{{ user?.name }}</h3>
+              <p>{{ user?.email }}</p>
+              <span class="user-role">{{ user?.role }}</span>
+            </div>
+          </div>
+          
+          <div class="dropdown-menu">
+            <a routerLink="/profile" class="dropdown-item" (click)="viewProfile()" role="menuitem">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              </svg>
+              <span>View Profile</span>
+            </a>
+            <a routerLink="/orders" class="dropdown-item" role="menuitem">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              </svg>
+              <span>My Orders</span>
+            </a>
+            <a routerLink="/settings" class="dropdown-item" role="menuitem">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              </svg>
+              <span>Settings</span>
+            </a>
+            <div class="dropdown-divider" role="separator"></div>
+            <button class="dropdown-item logout" (click)="onLogout()" role="menuitem">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              </svg>
+              <span>Logout</span>
+            </button>
+          </div>
+        </div>
+      </div>
+  
+      <!-- Login/Register buttons -->
+      <ng-template #loginButtons>
+        <div class="auth-buttons">
+          <button class="btn-login" (click)="navigateToLogin()" title="Sign in to your account">
+            <span>Log in</span>
+          </button>
+          <button class="btn-register" (click)="navigateToRegister()" title="Create a new account">
+            <span>Register</span>
+          </button>
+        </div>
+      </ng-template>
+    </div>
+  </header>
+  
+  <!-- Mobile navigation menu (shown on small screens) -->
+  <div class="mobile-nav" [class.open]="isMobileMenuOpen" role="dialog" aria-modal="true" aria-label="Mobile navigation">
+    <div class="mobile-nav-header">
+      <div class="brand-logo">
+        <span class="logo-icon">R</span>
+        <span class="logo-text">RestroRealm</span>
+      </div>
+      <button class="mobile-close" (click)="toggleMobileMenu()" aria-label="Close menu">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+          <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+      </button>
+    </div>
+  
+    <!-- Mobile Navigation Links -->
+    <ul class="mobile-menu" role="menu">
+      <li role="none"><a routerLink="/" (click)="closeMobileMenu()" role="menuitem">Home</a></li>
+      <li role="none"><a routerLink="/categories" (click)="closeMobileMenu()" role="menuitem">Categories</a></li>
+      <li role="none"><a routerLink="/menu" (click)="closeMobileMenu()" role="menuitem">Menu</a></li>
+      <li role="none"><a routerLink="/reservation" (click)="closeMobileMenu()" role="menuitem">Reserve A Table</a></li>
+      <li role="none"><a routerLink="/contact" (click)="closeMobileMenu()" role="menuitem">Contact</a></li>
+      <li role="none"><a routerLink="/about" (click)="closeMobileMenu()" role="menuitem">About Us</a></li>
+    </ul>
+  
+    <!-- User information section (for logged-in users) -->
+    <div *ngIf="isLoggedIn" class="mobile-user-info">
+      <div class="mobile-profile">
+        <div class="profile-avatar medium" aria-hidden="true">
+          <span *ngIf="!user?.profilePicture">{{ getUserInitials() }}</span>
+          <img *ngIf="user?.profilePicture" [src]="user?.profilePicture" [alt]="'Profile picture of ' + user?.name">
+        </div>
+        <div class="user-details">
+          <h3>{{ user?.name }}</h3>
+          <span class="user-role">{{ user?.role }}</span>
+        </div>
+      </div>
+      <div class="mobile-actions">
+        <a routerLink="/profile" class="mobile-action-btn" (click)="closeMobileMenu()">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+            <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+          <span>Profile</span>
+        </a>
+        <button class="mobile-action-btn logout" (click)="onLogout(); closeMobileMenu()">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+            <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+          <span>Logout</span>
+        </button>
+      </div>
+    </div>
+  
+    <!-- Authentication buttons for non-logged-in users -->
+    <div *ngIf="!isLoggedIn" class="mobile-auth-buttons">
+      <button class="btn-login-mobile" (click)="navigateToLogin(); closeMobileMenu()">Log in</button>
+      <button class="btn-register-mobile" (click)="navigateToRegister(); closeMobileMenu()">Register</button>
+    </div>
+  </div>
+  
+  <!-- Overlay for mobile menu -->
+  <div *ngIf="isMobileMenuOpen" class="mobile-overlay" (click)="closeMobileMenu()"></div>
+  
+  <!-- Sidebar component (only rendered when logged in) -->
+  <app-sidebar *ngIf="isLoggedIn"></app-sidebar>
+  
+  <!-- Overlay for sidebar -->
+  <div *ngIf="isLoggedIn && isSidebarOpen" class="sidebar-overlay" (click)="closeSidebar()"></div>

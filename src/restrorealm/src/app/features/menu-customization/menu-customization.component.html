@@ -1,0 +1,1036 @@
+<div class="custom-royal-container">
+    <!-- Simple Elegant Header Section -->
+    <header class="custom-simple-header">
+        <div class="custom-header-left">
+            <h1 class="custom-title">Customizations</h1>
+        </div>
+        
+        <div class="custom-header-right">
+            <div class="custom-search-container">
+                <i class="fas fa-search custom-search-icon"></i>
+                <input 
+                    type="text" 
+                    class="custom-search-field"
+                    [(ngModel)]="searchTerm" 
+                    (input)="onSearch()" 
+                    placeholder="Search customizations..."
+                    aria-label="Search Customizations"
+                />
+                <button *ngIf="searchTerm" class="custom-search-clear" (click)="clearSearch()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="custom-view-toggle">
+                <button 
+                    class="custom-view-btn" 
+                    [class.custom-view-active]="viewMode === 'card'"
+                    (click)="setViewMode('card')" 
+                    aria-label="Card View">
+                    <i class="fas fa-th-large"></i>
+                </button>
+                <button 
+                    class="custom-view-btn" 
+                    [class.custom-view-active]="viewMode === 'list'"
+                    (click)="setViewMode('list')" 
+                    aria-label="List View">
+                    <i class="fas fa-list"></i>
+                </button>
+            </div>
+            
+            <button 
+                *ngIf="createCustomization"
+                class="custom-create-btn" 
+                (click)="openCreateDialog()">
+                <i class="fas fa-plus"></i>
+                <span>Add New</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- No Permission Message -->
+    <div *ngIf="!readAllCustomizations" class="custom-no-permission">
+        <div class="custom-empty-illustration">
+            <i class="fas fa-lock custom-empty-icon"></i>
+        </div>
+        <h3 class="custom-empty-title">Access Restricted</h3>
+        <p class="custom-empty-message">You don't have permission to view menu customizations. Please contact an administrator if you need access.</p>
+    </div>
+
+    <ng-container *ngIf="readAllCustomizations">
+        <!-- Summary Panel -->
+        <div class="custom-summary-panel">
+            <div class="custom-summary-stat">
+                <div class="custom-stat-value">{{menuCustomizations.length}}</div>
+                <div class="custom-stat-label">Total Customizations</div>
+            </div>
+            <div class="custom-summary-stat">
+                <div class="custom-stat-value">{{getActiveCustomizations()}}</div>
+                <div class="custom-stat-label">Active Customizations</div>
+            </div>
+            <div class="custom-summary-stat">
+                <div class="custom-stat-value">{{getInactiveCustomizations()}}</div>
+                <div class="custom-stat-label">Inactive Customizations</div>
+            </div>
+            <div class="custom-summary-stat">
+                <div class="custom-stat-value">{{getRequiredCustomizations()}}</div>
+                <div class="custom-stat-label">Required Customizations</div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <main class="custom-content-area">
+            <!-- Filter Bar -->
+            <div class="custom-filter-bar">
+                <div class="custom-filter-group">
+                    <label class="custom-filter-label">Filter by:</label>
+                    <div class="custom-filter-pills">
+                        <button class="custom-filter-pill" [class.custom-filter-active]="currentFilter === 'all'" (click)="filterCustomizations('all')">All</button>
+                        <button class="custom-filter-pill" [class.custom-filter-active]="currentFilter === 'active'" (click)="filterCustomizations('active')">Active</button>
+                        <button class="custom-filter-pill" [class.custom-filter-active]="currentFilter === 'inactive'" (click)="filterCustomizations('inactive')">Inactive</button>
+                        <button class="custom-filter-pill" [class.custom-filter-active]="currentFilter === 'required'" (click)="filterCustomizations('required')">Required</button>
+                    </div>
+                </div>
+                <div class="custom-sort-dropdown">
+                    <label class="custom-sort-label">Sort by:</label>
+                    <select class="custom-sort-select" (change)="sortCustomizations($event)">
+                        <option value="name-asc">Name (A-Z)</option>
+                        <option value="name-desc">Name (Z-A)</option>
+                        <option value="options-desc">Most Options</option>
+                        <option value="options-asc">Fewest Options</option>
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div *ngIf="loading" class="custom-loading">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span>Loading customizations...</span>
+            </div>
+
+            <!-- Customization Grid/List -->
+            <div *ngIf="!loading" [class]="viewMode === 'card' ? 'custom-grid-container' : 'custom-list-container'">
+                <!-- Card View -->
+                <div *ngIf="viewMode === 'card'" class="custom-grid">
+                    <article 
+                        *ngFor="let customization of paginatedCustomizations"
+                        class="custom-card"
+                        [class.custom-inactive]="!customization.active">
+                        
+                        <div class="custom-card-header">
+                            <div class="custom-card-badges">
+                                <span *ngIf="!customization.active" class="custom-badge custom-badge-inactive">
+                                    <i class="fas fa-ban"></i> Inactive
+                                </span>
+                                <span *ngIf="customization.required" class="custom-badge custom-badge-required">
+                                    <i class="fas fa-asterisk"></i> Required
+                                </span>
+                                <span *ngIf="customization.multiSelect" class="custom-badge custom-badge-multiselect">
+                                    <i class="fas fa-check-double"></i> Multi-Select
+                                </span>
+                            </div>
+                            <h2 class="custom-card-title">{{ customization.name || customization.customizationName }}</h2>
+                        </div>
+                        
+                        <div class="custom-card-content">
+                            <p class="custom-card-description">{{ customization.description || 'No description provided' }}</p>
+                            
+                            <div class="custom-card-details">
+                                <div class="custom-detail-item">
+                                    <span class="custom-detail-label">Type:</span>
+                                    <span class="custom-detail-value">{{getCustomizationTypeLabel(customization.customizationType)}}</span>
+                                </div>
+                                <div class="custom-detail-item">
+                                    <span class="custom-detail-label">Options:</span>
+                                    <span class="custom-detail-value">{{customization.options.length || 0}}</span>
+                                </div>
+                                <div *ngIf="customization.multiSelect" class="custom-detail-item">
+                                    <span class="custom-detail-label">Max Selections:</span>
+                                    <span class="custom-detail-value">{{customization.maxSelections || 'No limit'}}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="custom-options-preview" *ngIf="customization.options && customization.options.length > 0">
+                                <div class="custom-option-chips">
+                                    <span *ngFor="let option of customization.options.slice(0, 3)" class="custom-option-chip">
+                                        {{option.optionName}}
+                                        <span *ngIf="option.additionalPrice > 0" class="custom-option-price">+${{formatPrice(option.additionalPrice)}}</span>
+                                    </span>
+                                    <span *ngIf="customization.options.length > 3" class="custom-option-more">
+                                        +{{customization.options.length - 3}} more
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="custom-card-actions">
+                                <button 
+                                    *ngIf="readSingleCustomization"
+                                    class="custom-action-btn custom-view-btn-secondary"
+                                    (click)="viewDetails(customization)"
+                                    aria-label="View details">
+                                    <i class="fas fa-eye"></i>
+                                    <span class="custom-action-label">View</span>
+                                </button>
+                                <button 
+                                    *ngIf="editCustomization"
+                                    class="custom-action-btn custom-edit-btn"
+                                    (click)="openEditDialog(customization)"
+                                    aria-label="Edit customization">
+                                    <i class="fas fa-edit"></i>
+                                    <span class="custom-action-label">Edit</span>
+                                </button>
+                                <button 
+                                    *ngIf="deleteSingleCustomization"
+                                    class="custom-action-btn custom-delete-btn"
+                                    (click)="confirmDelete(customization)"
+                                    aria-label="Delete customization">
+                                    <i class="fas fa-trash"></i>
+                                    <span class="custom-action-label">Delete</span>
+                                </button>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+                
+                <!-- List View -->
+                <div *ngIf="viewMode === 'list'" class="custom-list">
+                    <div class="custom-list-header">
+                        <div class="custom-list-cell custom-cell-name">Name</div>
+                        <div class="custom-list-cell custom-cell-type">Type</div>
+                        <div class="custom-list-cell custom-cell-options">Options</div>
+                        <div class="custom-list-cell custom-cell-status">Status</div>
+                        <div class="custom-list-cell custom-cell-actions">Actions</div>
+                    </div>
+                    
+                    <div 
+                        *ngFor="let customization of paginatedCustomizations"
+                        class="custom-list-row"
+                        [class.custom-inactive]="!customization.active">
+                        
+                        <div class="custom-list-cell custom-cell-name">
+                            <h3 class="custom-list-title">{{ customization.name || customization.customizationName }}</h3>
+                            <p class="custom-list-description">{{ customization.description || 'No description provided' }}</p>
+                        </div>
+                        
+                        <div class="custom-list-cell custom-cell-type">
+                            <div class="custom-type-info">
+                                <div>{{getCustomizationTypeLabel(customization.customizationType)}}</div>
+                                <div class="custom-type-selection">
+                                    {{customization.multiSelect ? 'Multi-Select' : 'Single Select'}}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="custom-list-cell custom-cell-options">
+                            <div class="custom-options-count">
+                                <span class="custom-count-number">{{customization.options.length || 0}}</span>
+                                <span class="custom-count-label">options</span>
+                            </div>
+                            <div class="custom-options-preview" *ngIf="customization.options && customization.options.length > 0">
+                                <div *ngFor="let option of customization.options.slice(0, 2)" class="custom-option-item">
+                                    {{option.optionName}}
+                                    <span *ngIf="option.additionalPrice > 0" class="custom-option-price">+${{formatPrice(option.additionalPrice)}}</span>
+                                </div>
+                                <div *ngIf="customization.options.length > 2" class="custom-options-more">+ {{customization.options.length - 2}} more</div>
+                            </div>
+                        </div>
+                        
+                        <div class="custom-list-cell custom-cell-status">
+                            <div class="custom-status-container">
+                                <span 
+                                    class="custom-status-indicator" 
+                                    [class.custom-status-active]="customization.active"
+                                    [class.custom-status-inactive]="!customization.active">
+                                </span>
+                                <span class="custom-status-text">
+                                    {{ customization.active ? 'Active' : 'Inactive' }}
+                                </span>
+                                <span *ngIf="customization.required" class="custom-required-indicator">
+                                    <i class="fas fa-asterisk"></i>
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="custom-list-cell custom-cell-actions">
+                            <div class="custom-list-actions">
+                                <button 
+                                    *ngIf="readSingleCustomization"
+                                    class="custom-list-btn custom-view-btn-secondary"
+                                    (click)="viewDetails(customization)"
+                                    aria-label="View details">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button 
+                                    *ngIf="editCustomization"
+                                    class="custom-list-btn custom-edit-btn"
+                                    (click)="openEditDialog(customization)"
+                                    aria-label="Edit customization">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button 
+                                    *ngIf="deleteSingleCustomization"
+                                    class="custom-list-btn custom-delete-btn"
+                                    (click)="confirmDelete(customization)"
+                                    aria-label="Delete customization">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Empty State -->
+            <div *ngIf="!loading && filteredCustomizations.length === 0" class="custom-empty-state">
+                <div class="custom-empty-illustration">
+                    <i class="fas fa-sliders-h custom-empty-icon"></i>
+                </div>
+                <h3 class="custom-empty-title">No Customizations Found</h3>
+                <p class="custom-empty-message">Your search didn't match any customizations in your collection</p>
+                <button class="custom-empty-action" (click)="clearSearch()">Clear Search</button>
+            </div>
+            
+            <!-- Pagination -->
+            <div *ngIf="!loading && filteredCustomizations.length > 0" class="custom-pagination">
+                <div class="custom-pagination-info">
+                    Showing {{ (currentPage - 1) * pageSize + 1 }} to {{ Math.min(currentPage * pageSize, filteredCustomizations.length) }} of {{ filteredCustomizations.length }} customizations
+                </div>
+                <div class="custom-pagination-controls">
+                    <button 
+                        class="custom-page-btn custom-prev-btn" 
+                        [disabled]="currentPage === 1"
+                        (click)="goToPage(currentPage - 1)">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    
+                    <div class="custom-page-numbers">
+                        <button 
+                            *ngIf="currentPage > 2"
+                            class="custom-page-number" 
+                            (click)="goToPage(1)">
+                            1
+                        </button>
+                        
+                        <span *ngIf="currentPage > 3" class="custom-page-ellipsis">...</span>
+                        
+                        <button 
+                            *ngIf="currentPage > 1"
+                            class="custom-page-number" 
+                            (click)="goToPage(currentPage - 1)">
+                            {{ currentPage - 1 }}
+                        </button>
+                        
+                        <button class="custom-page-number custom-page-current">
+                            {{ currentPage }}
+                        </button>
+                        
+                        <button 
+                            *ngIf="currentPage < totalPages"
+                            class="custom-page-number" 
+                            (click)="goToPage(currentPage + 1)">
+                            {{ currentPage + 1 }}
+                        </button>
+                        
+                        <span *ngIf="currentPage < totalPages - 2" class="custom-page-ellipsis">...</span>
+                        
+                        <button 
+                            *ngIf="currentPage < totalPages - 1"
+                            class="custom-page-number" 
+                            (click)="goToPage(totalPages)">
+                            {{ totalPages }}
+                        </button>
+                    </div>
+                    
+                    <button 
+                        class="custom-page-btn custom-next-btn"
+                        [disabled]="currentPage === totalPages" 
+                        (click)="goToPage(currentPage + 1)">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+                
+                <div class="custom-page-size">
+                    <label for="pageSize" class="custom-page-size-label">Items per page:</label>
+                    <select id="pageSize" class="custom-page-size-select" [(ngModel)]="pageSize" (change)="updatePageSize()">
+                        <option value="6">6</option>
+                        <option value="12">12</option>
+                        <option value="24">24</option>
+                        <option value="48">48</option>
+                    </select>
+                </div>
+            </div>
+        </main>
+    </ng-container>
+
+    <!-- Create/Edit Dialog -->
+    <div class="custom-modal-backdrop" *ngIf="showDialog" (click)="closeDialogIfBackdrop($event)">
+        <div class="custom-modal-container" (click)="$event.stopPropagation()">
+            <div class="custom-modal-header">
+                <h2 class="custom-modal-title">{{ editingCustomization ? 'Edit Customization' : 'Create New Customization' }}</h2>
+                <button class="custom-modal-close" (click)="closeDialog()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="custom-modal-divider"></div>
+            
+            <div class="custom-modal-body">
+                <form [formGroup]="customizationForm" (ngSubmit)="onSubmit()" class="custom-form">
+                    <div class="custom-form-columns">
+                        <div class="custom-form-left">
+                            <div class="custom-form-group">
+                                <label class="custom-form-label">Customization Name <span class="custom-required-mark">*</span></label>
+                                <input 
+                                    type="text" 
+                                    formControlName="name"
+                                    class="custom-form-input"
+                                    [class.custom-input-error]="customizationForm.get('name')?.invalid && customizationForm.get('name')?.touched"
+                                    placeholder="Enter customization name"
+                                />
+                                <div *ngIf="customizationForm.get('name')?.invalid && customizationForm.get('name')?.touched" class="custom-error-message">
+                                    <span *ngIf="customizationForm.get('name')?.errors?.['required']">Name is required</span>
+                                    <span *ngIf="customizationForm.get('name')?.errors?.['minlength']">Name must be at least 3 characters</span>
+                                    <span *ngIf="customizationForm.get('name')?.errors?.['maxlength']">Name cannot exceed 50 characters</span>
+                                </div>
+                            </div>
+
+                            <div class="custom-form-group">
+                                <label class="custom-form-label">Description</label>
+                                <textarea 
+                                    formControlName="description"
+                                    class="custom-form-textarea"
+                                    placeholder="Enter customization description"
+                                    rows="3"
+                                ></textarea>
+                                <div *ngIf="customizationForm.get('description')?.invalid && customizationForm.get('description')?.touched" class="custom-error-message">
+                                    <span *ngIf="customizationForm.get('description')?.errors?.['maxlength']">Description cannot exceed 500 characters</span>
+                                </div>
+                                <div class="custom-char-counter" [class.custom-char-limit]="(customizationForm.get('description')?.value?.length || 0) > 450">
+                                    {{ customizationForm.get('description')?.value?.length || 0 }}/500
+                                </div>
+                            </div>
+
+                            <div class="custom-form-columns">
+                                <div class="custom-form-left">
+                                    <div class="custom-form-group">
+                                        <label class="custom-form-label">Required Customization</label>
+                                        <div class="custom-toggle-container">
+                                            <label class="custom-toggle">
+                                                <input type="checkbox" formControlName="required">
+                                                <span class="custom-toggle-slider"></span>
+                                            </label>
+                                            <span class="custom-toggle-label">{{ customizationForm.get('required')?.value ? 'Required' : 'Optional' }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            
+                                <div class="custom-form-right">
+                                    <div class="custom-form-group">
+                                        <label class="custom-form-label">Status</label>
+                                        <div class="custom-toggle-container">
+                                            <label class="custom-toggle">
+                                                <input type="checkbox" formControlName="active">
+                                                <span class="custom-toggle-slider"></span>
+                                            </label>
+                                            <span class="custom-toggle-label">{{ customizationForm.get('active')?.value ? 'Active' : 'Inactive' }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="custom-form-group">
+                                <label class="custom-form-label">Customization Type <span class="custom-required-mark">*</span></label>
+                                <select 
+                                    formControlName="customizationType"
+                                    class="custom-form-select">
+                                    <option *ngFor="let type of customizationTypeOptions" [value]="type.value">{{type.label}}</option>
+                                </select>
+                            </div>
+
+                            <div class="custom-form-columns">
+                                <div class="custom-form-left">
+                                    <div class="custom-form-group">
+                                        <label class="custom-form-label">Allow Multiple Selections</label>
+                                        <div class="custom-toggle-container">
+                                            <label class="custom-toggle">
+                                                <input type="checkbox" formControlName="multiSelect">
+                                                <span class="custom-toggle-slider"></span>
+                                            </label>
+                                            <span class="custom-toggle-label">{{ customizationForm.get('multiSelect')?.value ? 'Multi-Select' : 'Single-Select' }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="custom-form-right">
+                                    <div class="custom-form-group" *ngIf="customizationForm.get('multiSelect')?.value">
+                                        <label class="custom-form-label">Max Selections</label>
+                                        <input 
+                                            type="number" 
+                                            min="1"
+                                            formControlName="maxSelections"
+                                            class="custom-form-input"
+                                            [class.custom-input-error]="customizationForm.get('maxSelections')?.invalid && customizationForm.get('maxSelections')?.touched"
+                                        />
+                                        <div *ngIf="customizationForm.get('maxSelections')?.invalid && customizationForm.get('maxSelections')?.touched" class="custom-error-message">
+                                            <span *ngIf="customizationForm.get('maxSelections')?.errors?.['min']">Maximum selections must be at least 1</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div *ngIf="customizationForm.errors?.['maxSelectionsExceedsOptions']" class="custom-error-message custom-form-error">
+                                Maximum selections cannot be greater than the number of options
+                            </div>
+                        </div>
+                        
+                        <div class="custom-form-right">
+                            <!-- Customization Options Section -->
+                            <div class="custom-options-section">
+                                <div class="custom-section-header">
+                                    <h3 class="custom-section-title">Options</h3>
+                                    <button type="button" class="custom-add-option-btn" (click)="openOptionDialog()">
+                                        <i class="fas fa-plus"></i> Add Option
+                                    </button>
+                                </div>
+                                
+                                <div class="custom-options-list">
+                                    <div *ngIf="optionsFormArray.length === 0" class="custom-no-options">
+                                        <p>No options added yet. Click "Add Option" to create choices for this customization.</p>
+                                    </div>
+                                    
+                                    <div *ngFor="let option of optionsFormArray.controls; let i = index" class="custom-option-card">
+                                        <div class="custom-option-content">
+                                            <h4 class="custom-option-name">{{option.get('optionName')?.value}}</h4>
+                                            <div class="custom-option-info">
+                                                <div class="custom-option-price" *ngIf="option.get('additionalPrice')?.value > 0">
+                                                    +${{formatPrice(option.get('additionalPrice')?.value)}}
+                                                </div>
+                                                <div class="custom-option-status">
+                                                    <span *ngIf="option.get('default')?.value" class="custom-option-default">
+                                                        <i class="fas fa-check-circle"></i> Default
+                                                    </span>
+                                                    <span *ngIf="!option.get('active')?.value" class="custom-option-inactive">
+                                                        Inactive
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <p class="custom-option-description" *ngIf="option.get('description')?.value">
+                                                {{option.get('description')?.value}}
+                                            </p>
+                                            <div class="custom-option-calories" *ngIf="option.get('calories')?.value > 0">
+                                                <i class="fas fa-fire"></i> {{option.get('calories')?.value}} calories
+                                            </div>
+                                        </div>
+                                        <div class="custom-option-actions">
+                                            <button type="button" class="custom-option-edit" (click)="editOption(i)">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button type="button" class="custom-option-remove" (click)="removeOption(i)">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Image Upload Section -->
+                            <div class="custom-image-upload">
+                                <label class="custom-form-label">Customization Image</label>
+                                
+                                <div class="custom-image-preview-container">
+                                    <div class="custom-image-preview" [class.custom-has-image]="imagePreview || (editingCustomization && editingCustomization.imagePath)">
+                                        <img 
+                                            *ngIf="imagePreview" 
+                                            [src]="imagePreview" 
+                                            alt="Image preview" 
+                                            class="custom-preview-img"
+                                        />
+                                        <img 
+                                            *ngIf="!imagePreview && editingCustomization && editingCustomization.imagePath" 
+                                            [src]="getImagePath(editingCustomization)" 
+                                            alt="Current image" 
+                                            class="custom-preview-img"
+                                            (error)="handlePreviewError($event)"
+                                        />
+                                        <div *ngIf="!imagePreview && (!editingCustomization || !editingCustomization.imagePath)" class="custom-no-image">
+                                            <i class="fas fa-image"></i>
+                                            <span>No image selected</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="custom-image-tabs">
+                                    <button 
+                                        type="button"
+                                        class="custom-image-tab" 
+                                        [class.custom-tab-active]="imageInputType === 'file'"
+                                        (click)="setImageInputType('file')">
+                                        Upload Image
+                                    </button>
+                                    <button 
+                                        type="button"
+                                        class="custom-image-tab" 
+                                        [class.custom-tab-active]="imageInputType === 'url'"
+                                        (click)="setImageInputType('url')">
+                                        Image URL
+                                    </button>
+                                </div>
+                                
+                                <div *ngIf="imageInputType === 'file'" class="custom-file-upload">
+                                    <label class="custom-upload-btn">
+                                        <input 
+                                            type="file" 
+                                            (change)="onImageSelect($event)"
+                                            accept="image/*"
+                                            hidden
+                                        />
+                                        <i class="fas fa-upload"></i>
+                                        <span>{{ customizationForm.get('image')?.value ? 'Change Image' : 'Select Image' }}</span>
+                                    </label>
+                                    <span *ngIf="customizationForm.get('image')?.value" class="custom-filename">
+                                        {{ getFileName() }}
+                                    </span>
+                                </div>
+                                
+                                <div *ngIf="imageInputType === 'url'" class="custom-url-input">
+                                    <input 
+                                        type="text" 
+                                        class="custom-form-input"
+                                        formControlName="imageUrl"
+                                        placeholder="Enter image URL"
+                                        (blur)="updateImagePreviewFromUrl()"
+                                    />
+                                    <button 
+                                        type="button"
+                                        class="custom-preview-url-btn"
+                                        (click)="updateImagePreviewFromUrl()">
+                                        Preview
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="custom-modal-divider"></div>
+                    
+                    <div class="custom-form-actions">
+                        <button 
+                            type="button" 
+                            class="custom-btn-secondary"
+                            (click)="closeDialog()">
+                            Cancel
+                        </button>
+                        <button 
+                            type="submit" 
+                            class="custom-btn-primary"
+                            [disabled]="customizationForm.invalid || loading || formSubmitting || optionsFormArray.length === 0">
+                            <span *ngIf="!loading && !formSubmitting">{{ editingCustomization ? 'Update Customization' : 'Create Customization' }}</span>
+                            <span *ngIf="loading || formSubmitting" class="custom-btn-loader">
+                                <i class="fas fa-spinner fa-spin"></i> Saving...
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Option Dialog -->
+    <div class="custom-modal-backdrop" *ngIf="showOptionDialog" (click)="closeOptionDialog($event)">
+        <div class="custom-modal-container custom-option-modal" (click)="$event.stopPropagation()">
+            <div class="custom-modal-header">
+                <h2 class="custom-modal-title">{{ editingOptionIndex !== null ? 'Edit Option' : 'Add New Option' }}</h2>
+                <button class="custom-modal-close" (click)="closeOptionDialog()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="custom-modal-divider"></div>
+            
+            <div class="custom-modal-body">
+                <form [formGroup]="optionForm" (ngSubmit)="saveOption()" class="custom-form">
+                    <div class="custom-form-group">
+                        <label class="custom-form-label">Option Name <span class="custom-required-mark">*</span></label>
+                        <input 
+                            type="text" 
+                            formControlName="optionName"
+                            class="custom-form-input"
+                            [class.custom-input-error]="optionForm.get('optionName')?.invalid && optionForm.get('optionName')?.touched"
+                            placeholder="Enter option name"
+                        />
+                        <div *ngIf="optionForm.get('optionName')?.invalid && optionForm.get('optionName')?.touched" class="custom-error-message">
+                            <span *ngIf="optionForm.get('optionName')?.errors?.['required']">Name is required</span>
+                            <span *ngIf="optionForm.get('optionName')?.errors?.['minlength']">Name must be at least 2 characters</span>
+                            <span *ngIf="optionForm.get('optionName')?.errors?.['maxlength']">Name cannot exceed 50 characters</span>
+                        </div>
+                    </div>
+
+                    <div class="custom-form-group">
+                        <label class="custom-form-label">Description</label>
+                        <textarea 
+                            formControlName="description"
+                            class="custom-form-textarea"
+                            placeholder="Enter option description"
+                            rows="3"
+                        ></textarea>
+                        <div *ngIf="optionForm.get('description')?.invalid && optionForm.get('description')?.touched" class="custom-error-message">
+                            <span *ngIf="optionForm.get('description')?.errors?.['maxlength']">Description cannot exceed 200 characters</span>
+                        </div>
+                        <div class="custom-char-counter" [class.custom-char-limit]="(optionForm.get('description')?.value?.length || 0) > 180">
+                            {{ optionForm.get('description')?.value?.length || 0 }}/200
+                        </div>
+                    </div>
+                    
+                    <div class="custom-form-columns">
+                        <div class="custom-form-left">
+                            <div class="custom-form-group">
+                                <label class="custom-form-label">Additional Price ($)</label>
+                                <input 
+                                    type="number" 
+                                    step="0.01"
+                                    min="0"
+                                    formControlName="additionalPrice"
+                                    class="custom-form-input"
+                                    [class.custom-input-error]="optionForm.get('additionalPrice')?.invalid && optionForm.get('additionalPrice')?.touched"
+                                    placeholder="0.00"
+                                />
+                                <div *ngIf="optionForm.get('additionalPrice')?.invalid && optionForm.get('additionalPrice')?.touched" class="custom-error-message">
+                                    <span *ngIf="optionForm.get('additionalPrice')?.errors?.['min']">Price cannot be negative</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="custom-form-right">
+                            <div class="custom-form-group">
+                                <label class="custom-form-label">Calories</label>
+                                <input 
+                                    type="number" 
+                                    step="1"
+                                    min="0"
+                                    formControlName="calories"
+                                    class="custom-form-input"
+                                    [class.custom-input-error]="optionForm.get('calories')?.invalid && optionForm.get('calories')?.touched"
+                                    placeholder="0"
+                                />
+                                <div *ngIf="optionForm.get('calories')?.invalid && optionForm.get('calories')?.touched" class="custom-error-message">
+                                    <span *ngIf="optionForm.get('calories')?.errors?.['min']">Calories cannot be negative</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="custom-form-row">
+                        <div class="custom-form-half">
+                            <div class="custom-form-group">
+                                <label class="custom-form-label">Default Option</label>
+                                <div class="custom-toggle-container">
+                                    <label class="custom-toggle">
+                                        <input type="checkbox" formControlName="default">
+                                        <span class="custom-toggle-slider"></span>
+                                    </label>
+                                    <span class="custom-toggle-label">{{ optionForm.get('default')?.value ? 'Default' : 'Not Default' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="custom-form-half">
+                            <div class="custom-form-group">
+                                <label class="custom-form-label">Status</label>
+                                <div class="custom-toggle-container">
+                                    <label class="custom-toggle">
+                                        <input type="checkbox" formControlName="active">
+                                        <span class="custom-toggle-slider"></span>
+                                    </label>
+                                    <span class="custom-toggle-label">{{ optionForm.get('active')?.value ? 'Active' : 'Inactive' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Image Upload -->
+                    <div class="custom-image-upload">
+                        <label class="custom-form-label">Option Image</label>
+                        
+                        <div class="custom-image-preview-container">
+                            <div class="custom-image-preview" [class.custom-has-image]="imagePreview">
+                                <img 
+                                    *ngIf="imagePreview" 
+                                    [src]="imagePreview" 
+                                    alt="Image preview" 
+                                    class="custom-preview-img"
+                                />
+                                <div *ngIf="!imagePreview" class="custom-no-image">
+                                    <i class="fas fa-image"></i>
+                                    <span>No image selected</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="custom-image-tabs">
+                            <button 
+                                type="button"
+                                class="custom-image-tab" 
+                                [class.custom-tab-active]="imageInputType === 'file'"
+                                (click)="setImageInputType('file')">
+                                Upload Image
+                            </button>
+                            <button 
+                                type="button"
+                                class="custom-image-tab" 
+                                [class.custom-tab-active]="imageInputType === 'url'"
+                                (click)="setImageInputType('url')">
+                                Image URL
+                            </button>
+                        </div>
+                        
+                        <div *ngIf="imageInputType === 'file'" class="custom-file-upload">
+                            <label class="custom-upload-btn">
+                                <input 
+                                    type="file" 
+                                    (change)="onImageSelect($event)"
+                                    accept="image/*"
+                                    hidden
+                                />
+                                <i class="fas fa-upload"></i>
+                                <span>{{ optionForm.get('image')?.value ? 'Change Image' : 'Select Image' }}</span>
+                            </label>
+                            <span *ngIf="optionForm.get('image')?.value" class="custom-filename">
+                                {{ getFileName() }}
+                            </span>
+                        </div>
+                        
+                        <div *ngIf="imageInputType === 'url'" class="custom-url-input">
+                            <input 
+                                type="text" 
+                                class="custom-form-input"
+                                formControlName="imageUrl"
+                                placeholder="Enter image URL"
+                                (blur)="updateImagePreviewFromUrl()"
+                            />
+                            <button 
+                                type="button"
+                                class="custom-preview-url-btn"
+                                (click)="updateImagePreviewFromUrl()">
+                                Preview
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="custom-modal-divider"></div>
+                    
+                    <div class="custom-form-actions">
+                        <button 
+                            type="button" 
+                            class="custom-btn-secondary"
+                            (click)="closeOptionDialog()">
+                            Cancel
+                        </button>
+                        <button 
+                            type="submit" 
+                            class="custom-btn-primary"
+                            [disabled]="optionForm.invalid">
+                            {{ editingOptionIndex !== null ? 'Update Option' : 'Add Option' }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Customization Details Modal -->
+    <div class="custom-modal-backdrop" *ngIf="showDetailsModal" (click)="closeDetailsModal($event)">
+        <div class="custom-modal-container custom-details-modal" (click)="$event.stopPropagation()">
+            <div class="custom-modal-header">
+                <h2 class="custom-modal-title">Customization Details</h2>
+                <button class="custom-modal-close" (click)="closeDetailsModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="custom-modal-divider"></div>
+            
+            <div class="custom-modal-body" *ngIf="selectedCustomization">
+                <div class="custom-details-content">
+                    <div class="custom-details-header">
+                        <h3 class="custom-details-name">{{ selectedCustomization.name || selectedCustomization.customizationName }}</h3>
+                        
+                        <div class="custom-details-badges">
+                            <span [class.custom-badge-active]="selectedCustomization.active" [class.custom-badge-inactive]="!selectedCustomization.active" class="custom-badge">
+                                <i [class]="selectedCustomization.active ? 'fas fa-check-circle' : 'fas fa-ban'"></i> 
+                                {{ selectedCustomization.active ? 'Active' : 'Inactive' }}
+                            </span>
+                            <span *ngIf="selectedCustomization.required" class="custom-badge custom-badge-required">
+                                <i class="fas fa-asterisk"></i> Required
+                            </span>
+                            <span *ngIf="selectedCustomization.multiSelect" class="custom-badge custom-badge-multiselect">
+                                <i class="fas fa-check-double"></i> Multi-Select
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="custom-details-description" *ngIf="selectedCustomization.description">
+                        <p>{{ selectedCustomization.description }}</p>
+                    </div>
+                    
+                    <div class="custom-details-info">
+                        <div class="custom-details-section">
+                            <h4 class="custom-details-section-title">Configuration</h4>
+                            <div class="custom-details-info-grid">
+                                <div class="custom-details-info-item">
+                                    <span class="custom-details-label">Type:</span>
+                                    <span class="custom-details-value">{{ getCustomizationTypeLabel(selectedCustomization.customizationType) }}</span>
+                                </div>
+                                <div class="custom-details-info-item">
+                                    <span class="custom-details-label">Selection:</span>
+                                    <span class="custom-details-value">{{ selectedCustomization.multiSelect ? 'Multiple' : 'Single' }}</span>
+                                </div>
+                                <div class="custom-details-info-item" *ngIf="selectedCustomization.multiSelect">
+                                    <span class="custom-details-label">Max Selections:</span>
+                                    <span class="custom-details-value">{{ selectedCustomization.maxSelections || 'No limit' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="custom-details-section">
+                            <h4 class="custom-details-section-title">
+                                Options 
+                                <span class="custom-details-count">{{ selectedCustomization.options.length || 0 }}</span>
+                            </h4>
+                            
+                            <div *ngIf="!selectedCustomization.options || selectedCustomization.options.length === 0" class="custom-details-no-items">
+                                No options have been added to this customization.
+                            </div>
+                            
+                            <div class="custom-details-options">
+                                <div *ngFor="let option of selectedCustomization.options" class="custom-details-option">
+                                    <div class="custom-details-option-header">
+                                        <h5 class="custom-details-option-name">
+                                            {{ option.optionName }}
+                                            <span *ngIf="option.default" class="custom-details-option-default">
+                                                <i class="fas fa-check-circle"></i> Default
+                                            </span>
+                                        </h5>
+                                        <div class="custom-details-option-price" *ngIf="option.additionalPrice > 0">
+                                            +${{ formatPrice(option.additionalPrice) }}
+                                        </div>
+                                    </div>
+                                    <div class="custom-details-option-content">
+                                        <p *ngIf="option.description" class="custom-details-option-description">
+                                            {{ option.description }}
+                                        </p>
+                                        <div class="custom-details-option-status" *ngIf="!option.active">
+                                            <span class="custom-details-option-inactive">Inactive</span>
+                                        </div>
+                                        <div class="custom-details-option-calories" *ngIf="option.calories">
+                                            <i class="fas fa-fire"></i> {{ option.calories }} calories
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="custom-details-section" *ngIf="selectedCustomization.categories && selectedCustomization.categories.length > 0">
+                            <h4 class="custom-details-section-title">Available in Categories</h4>
+                            <div class="custom-details-categories">
+                                <div class="custom-category-chip" *ngFor="let category of selectedCustomization.categories">
+                                    {{category.name}}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="custom-modal-divider"></div>
+            
+            <div class="custom-details-actions">
+                <button 
+                    *ngIf="editCustomization"
+                    class="custom-btn-secondary"
+                    (click)="editFromDetails()">
+                    <i class="fas fa-edit"></i> Edit Customization
+                </button>
+                <button 
+                    class="custom-btn-primary"
+                    (click)="closeDetailsModal()">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="custom-modal-backdrop" *ngIf="showDeleteConfirmation" (click)="cancelDelete($event)">
+        <div class="custom-modal-container custom-delete-modal" (click)="$event.stopPropagation()">
+            <div class="custom-modal-header">
+                <h2 class="custom-modal-title custom-delete-title">Confirm Deletion</h2>
+                <button class="custom-modal-close" (click)="cancelDelete()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="custom-modal-divider"></div>
+            
+            <div class="custom-modal-body">
+                <div class="custom-delete-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                
+                <h3 class="custom-delete-heading">Are you sure you want to delete this customization?</h3>
+                
+                <p class="custom-delete-message">
+                    You are about to delete "<strong>{{ customizationToDelete?.name || customizationToDelete?.customizationName }}</strong>". 
+                    This action cannot be undone and this customization will be removed from all menu items that use it.
+                </p>
+                
+                <div class="custom-delete-details">
+                    <h4 class="custom-delete-subheading">Customization Details:</h4>
+                    <ul class="custom-delete-info">
+                        <li>Type: {{ customizationToDelete ? getCustomizationTypeLabel(customizationToDelete.customizationType) : '' }}</li>
+                        <li>Status: {{ customizationToDelete?.active ? 'Active' : 'Inactive' }}</li>
+                        <li>Required: {{ customizationToDelete?.required ? 'Yes' : 'No' }}</li>
+                        <li>Options: {{ customizationToDelete?.options?.length || 0 }}</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="custom-modal-divider"></div>
+            
+            <div class="custom-delete-actions">
+                <button 
+                    class="custom-btn-secondary"
+                    (click)="cancelDelete()">
+                    Cancel
+                </button>
+                <button 
+                    class="custom-btn-danger"
+                    [disabled]="deletingCustomization"
+                    (click)="proceedWithDelete()">
+                    <span *ngIf="!deletingCustomization">
+                        <i class="fas fa-trash"></i> Delete Permanently
+                    </span>
+                    <span *ngIf="deletingCustomization" class="custom-btn-loader">
+                        <i class="fas fa-spinner fa-spin"></i> Deleting...
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div *ngIf="toast" class="custom-toast" [class.custom-toast-success]="toast.type === 'success'" [class.custom-toast-error]="toast.type === 'error'">
+        <div class="custom-toast-icon">
+            <i *ngIf="toast.type === 'success'" class="fas fa-check-circle"></i>
+            <i *ngIf="toast.type === 'error'" class="fas fa-exclamation-circle"></i>
+        </div>
+        <div class="custom-toast-content">
+            <p class="custom-toast-message">{{ toast.message }}</p>
+        </div>
+        <button class="custom-toast-close" (click)="dismissToast()">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="custom-toast-progress"></div>
+    </div>
+</div>

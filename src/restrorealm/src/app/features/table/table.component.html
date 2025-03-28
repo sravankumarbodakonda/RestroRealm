@@ -1,0 +1,140 @@
+<div class="table-container">
+    <header class="table-header">
+        <h1 class="table-title">Table Management</h1>
+        <div class="table-controls">
+            <div class="search-container">
+                <span class="search-icon fas fa-search"></span>
+                <input 
+                    type="text" 
+                    class="search-input"
+                    [(ngModel)]="searchTerm" 
+                    (input)="onSearch()" 
+                    placeholder="Search Tables..."
+                    aria-label="Search Tables"
+                />
+            </div>
+            <div class="controls-group">
+                <button *ngIf="createTable"
+                    class="mdc-button mdc-button--raised" 
+                    (click)="openCreateDialog()">
+                    <span class="mdc-button__label">
+                        <i class="fas fa-plus"></i> Add Table
+                    </span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main [class]="'item-container ' + viewMode" *ngIf="viewAllTables" >
+        <article 
+            *ngFor="let table of filteredTables"
+            class="table-item"
+            [class.card-view]="viewMode === 'card'"
+            [class.list-view]="viewMode === 'list'">
+            
+            <div class="item-content">
+                <header class="item-header">
+                    <h2 class="item-title">{{ table.tableNumber }}</h2>
+                    <span class="item-price">Capacity: {{ table.capacity }}</span>
+                </header>
+                
+                <div class="item-metadata">
+                    <span class="badge" [class.ar]="!table.reservable">
+                        {{ table.reservable ? 'Reservable' : 'Not Reservable' }}
+                    </span>
+                    <span class="item-description">{{ table.metadata }}</span>
+                </div>
+
+                <div class="action-buttons">
+                    <button *ngIf="editTable" 
+                        class="icon-button"
+                        (click)="openEditDialog(table)"
+                        aria-label="Edit item">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button *ngIf="isDeleteTable" 
+                        class="icon-button danger"
+                        (click)="deleteTable(table)"
+                        aria-label="Delete item">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </article>
+    </main>
+
+    <!-- Empty State -->
+    <div *ngIf="filteredTables.length === 0" class="empty-state">
+        <i class="material-icons">
+            <img src="https://cdn-icons-png.flaticon.com/128/1012/1012472.png">
+        </i>
+        <h3>No Tables found</h3>
+        <p>Try adjusting your search or add a new table</p>
+    </div>
+
+    <!-- Dialog -->
+    <div class="dialog-backdrop" *ngIf="showDialog">
+        <div class="dialog-card">
+            <h2 class="dialog-title">{{ editingTable ? 'Edit' : 'Create' }} Table</h2>
+            
+            <form [formGroup]="tableForm" (ngSubmit)="onSubmit()" class="dialog-form">
+                <div class="form-field">
+                    <label>Table Number</label>
+                    <input 
+                        type="text" 
+                        formControlName="tableNumber"
+                        class="mdc-text-field__input"
+                        required
+                    />
+                </div>
+
+                <div class="form-field">
+                    <label>Capacity</label>
+                    <input 
+                        type="number" 
+                        formControlName="capacity"
+                        class="mdc-text-field__input"
+                        required
+                        min="1"
+                    />
+                </div>
+
+                <div class="form-field">
+                    <label>Reservable</label>
+                    <select 
+                        formControlName="reservable"
+                        class="mdc-select">
+                        <option value="true">Yes</option>
+                        <option value="false">No</option>
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label>Metadata</label>
+                    <textarea 
+                        formControlName="metadata"
+                        class="mdc-text-field__input"
+                        rows="3"
+                    ></textarea>
+                </div>
+
+                <div class="dialog-actions">
+                    <button 
+                        type="button" 
+                        class="mdc-button"
+                        (click)="closeDialog()">
+                        Cancel
+                    </button>
+                    <button 
+                        type="submit" 
+                        class="mdc-button mdc-button--raised"
+                        [disabled]="tableForm.invalid || loading">
+                        {{ loading ? 'Saving...' : 'Save Changes' }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <app-toaster *ngIf="toast" [message]="toast.message" [type]="toast.type"></app-toaster>
+</div>

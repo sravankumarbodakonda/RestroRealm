@@ -1,0 +1,1013 @@
+<!-- menu.component.html -->
+<div class="menu-royal-container">
+    <!-- Header Section -->
+    <header class="menu-simple-header">
+        <div class="menu-header-left">
+            <h1 class="menu-title">Menu Management</h1>
+        </div>
+        
+        <div class="menu-header-right">
+            <div class="menu-search-container">
+                <i class="fas fa-search menu-search-icon"></i>
+                <input 
+                    type="text" 
+                    class="menu-search-field"
+                    [(ngModel)]="searchTerm" 
+                    (input)="onSearch()" 
+                    placeholder="Search menu items..."
+                    aria-label="Search Menu Items"
+                />
+                <button *ngIf="searchTerm" class="menu-search-clear" (click)="clearSearch()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="menu-view-toggle">
+                <button 
+                    class="menu-view-btn" 
+                    [class.menu-view-active]="viewMode === 'card'"
+                    (click)="setViewMode('card')" 
+                    aria-label="Card View">
+                    <i class="fas fa-th-large"></i>
+                </button>
+                <button 
+                    class="menu-view-btn" 
+                    [class.menu-view-active]="viewMode === 'list'"
+                    (click)="setViewMode('list')" 
+                    aria-label="List View">
+                    <i class="fas fa-list"></i>
+                </button>
+            </div>
+            
+            <button 
+                *ngIf="createMenuItem"
+                class="menu-create-btn" 
+                (click)="openCreateDialog()">
+                <i class="fas fa-plus"></i>
+                <span>Add Item</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Categories Filter -->
+    <nav class="menu-category-filter">
+        <div class="menu-scroll">
+            <button
+                class="menu-category-pill"
+                [class.menu-active]="!selectedCategory"
+                (click)="filterByCategory(null)"
+                aria-label="Show all categories">
+                All Categories
+            </button>
+            <button
+                *ngFor="let category of categories"
+                class="menu-category-pill"
+                [class.menu-active]="selectedCategory?.id === category.id"
+                (click)="filterByCategory(category)"
+                [attr.aria-label]="'Filter by ' + category.name">
+                {{ category.name }}
+            </button>
+        </div>
+    </nav>
+
+    <!-- Summary Panel -->
+    <div class="menu-summary-panel">
+        <div class="menu-summary-stat">
+            <div class="menu-stat-value">{{menuItems.length}}</div>
+            <div class="menu-stat-label">Total Items</div>
+        </div>
+        <div class="menu-summary-stat">
+            <div class="menu-stat-value">{{availableMenuItems()}}</div>
+            <div class="menu-stat-label">Available Items</div>
+        </div>
+        <div class="menu-summary-stat">
+            <div class="menu-stat-value">{{customizedMenuItems()}}</div>
+            <div class="menu-stat-label">Customizable</div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="menu-content-area">
+        <!-- Filter Bar -->
+        <div class="menu-filter-bar">
+            <div class="menu-filter-group">
+                <label class="menu-filter-label">Filter by:</label>
+                <div class="menu-filter-pills">
+                    <button class="menu-filter-pill" [class.menu-filter-active]="currentFilter === 'all'" (click)="filterMenuItems('all')">All</button>
+                    <button class="menu-filter-pill" [class.menu-filter-active]="currentFilter === 'available'" (click)="filterMenuItems('available')">Available</button>
+                    <button class="menu-filter-pill" [class.menu-filter-active]="currentFilter === 'customizable'" (click)="filterMenuItems('customizable')">Customizable</button>
+                    <button class="menu-filter-pill" [class.menu-filter-active]="currentFilter === 'spicy'" (click)="filterMenuItems('spicy')">Spicy</button>
+                    <button class="menu-filter-pill" [class.menu-filter-active]="currentFilter === 'vegetarian'" (click)="filterMenuItems('vegetarian')">Vegetarian</button>
+                </div>
+            </div>
+            <div class="menu-sort-dropdown">
+                <label class="menu-sort-label">Sort by:</label>
+                <select class="menu-sort-select" (change)="sortMenuItems($event)">
+                    <option value="name-asc">Name (A-Z)</option>
+                    <option value="name-desc">Name (Z-A)</option>
+                    <option value="price-low">Price (Low to High)</option>
+                    <option value="price-high">Price (High to Low)</option>
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div *ngIf="loading" class="menu-loading">
+            <i class="fas fa-spinner fa-spin"></i>
+            <span>Loading menu items...</span>
+        </div>
+
+        <!-- Menu Items Grid/List -->
+        <div *ngIf="!loading" [class]="viewMode === 'card' ? 'menu-grid-container' : 'menu-list-container'">
+            <!-- Card View -->
+            <div *ngIf="viewMode === 'card'" class="menu-grid">
+                <article 
+                    *ngFor="let item of paginatedMenuItems"
+                    class="menu-card"
+                    [class.menu-unavailable]="item.unavailable">
+                    
+                    <div class="menu-card-media">
+                        <img 
+                            [src]="getImagePath(item)" 
+                            [alt]="item.name"
+                            class="menu-card-image"
+                            (error)="handleImageError($event)"
+                            loading="lazy"
+                        />
+                        <div class="menu-card-overlay">
+                            <div class="menu-card-badges">
+                                <span *ngIf="item.unavailable" class="menu-badge menu-badge-unavailable">
+                                    <i class="fas fa-ban"></i> Unavailable
+                                </span>
+                                <span *ngIf="item.isNew" class="menu-badge menu-badge-new">
+                                    <i class="fas fa-star"></i> New
+                                </span>
+                                <span *ngIf="item.isVegetarian" class="menu-badge menu-badge-vegetarian">
+                                    <i class="fas fa-leaf"></i> Vegetarian
+                                </span>
+                                <span *ngIf="item.isSpicy" class="menu-badge menu-badge-spicy">
+                                    <i class="fas fa-pepper-hot"></i> Spicy
+                                </span>
+                                <span *ngIf="item.customizable" class="menu-badge menu-badge-customizable">
+                                    <i class="fas fa-sliders-h"></i> Customizable
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="menu-card-content">
+                        <div class="menu-card-price">${{item.basePrice.toFixed(2)}}</div>
+                        <h2 class="menu-card-title">{{ item.name }}</h2>
+                        <p class="menu-card-description">{{ item.description || 'No description provided' }}</p>
+                        
+                        <div class="menu-card-details">
+                            <div class="menu-detail-item">
+                                <span class="menu-detail-label">Category:</span>
+                                <span class="menu-detail-value">{{getCategoryName(item?.category?.id || 0)}}</span>
+                            </div>
+                            <div class="menu-detail-item">
+                                <span class="menu-detail-label">Calories:</span>
+                                <span class="menu-detail-value">{{item.calories}}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-card-actions">
+                            <button 
+                                *ngIf="readSingleMenuItem"
+                                class="menu-action-btn menu-view-btn-secondary"
+                                (click)="viewDetails(item)"
+                                aria-label="View details">
+                                <i class="fas fa-eye"></i>
+                                <span class="menu-action-label">View</span>
+                            </button>
+                            <button 
+                                *ngIf="isEditable"
+                                class="menu-action-btn menu-edit-btn"
+                                (click)="openEditDialog(item)"
+                                aria-label="Edit item">
+                                <i class="fas fa-edit"></i>
+                                <span class="menu-action-label">Edit</span>
+                            </button>
+                            <button 
+                                *ngIf="deleteMenuItem"
+                                class="menu-action-btn menu-delete-btn"
+                                (click)="confirmDelete(item)"
+                                aria-label="Delete item">
+                                <i class="fas fa-trash"></i>
+                                <span class="menu-action-label">Delete</span>
+                            </button>
+                        </div>
+                    </div>
+                </article>
+            </div>
+            
+            <!-- List View -->
+            <div *ngIf="viewMode === 'list'" class="menu-list">
+                <div class="menu-list-header">
+                    <div class="menu-list-cell menu-cell-image">Image</div>
+                    <div class="menu-list-cell menu-cell-name">Name</div>
+                    <div class="menu-list-cell menu-cell-description">Description</div>
+                    <div class="menu-list-cell menu-cell-price">Price</div>
+                    <div class="menu-list-cell menu-cell-category">Category</div>
+                    <div class="menu-list-cell menu-cell-actions">Actions</div>
+                </div>
+                
+                <div 
+                    *ngFor="let item of paginatedMenuItems"
+                    class="menu-list-row"
+                    [class.menu-unavailable]="item.unavailable">
+                    
+                    <div class="menu-list-cell menu-cell-image">
+                        <div class="menu-thumbnail-container">
+                            <img 
+                                [src]="getImagePath(item)" 
+                                [alt]="item.name"
+                                class="menu-thumbnail"
+                                (error)="handleImageError($event)"
+                            />
+                        </div>
+                    </div>
+                    
+                    <div class="menu-list-cell menu-cell-name">
+                        <h3 class="menu-list-title">{{ item.name }}</h3>
+                        <div class="menu-list-badges">
+                            <span *ngIf="item.isNew" class="menu-list-badge menu-badge-new-small">New</span>
+                            <span *ngIf="item.isVegetarian" class="menu-list-badge menu-badge-vegetarian-small">Veg</span>
+                            <span *ngIf="item.isSpicy" class="menu-list-badge menu-badge-spicy-small">Spicy</span>
+                            <span *ngIf="item.customizable" class="menu-list-badge menu-badge-customizable-small">Custom</span>
+                        </div>
+                    </div>
+                    
+                    <div class="menu-list-cell menu-cell-description">
+                        <p class="menu-list-description">{{ item.description || 'No description provided' }}</p>
+                    </div>
+                    
+                    <div class="menu-list-cell menu-cell-price">
+                        <div class="menu-price-display">
+                            <span>${{item.basePrice.toFixed(2)}}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="menu-list-cell menu-cell-category">
+                        <span class="menu-category-name">{{ getCategoryName(item?.category?.id || 0) }}</span>
+                    </div>
+                    
+                    <div class="menu-list-cell menu-cell-actions">
+                        <div class="menu-list-actions">
+                            <button 
+                                *ngIf="readSingleMenuItem"
+                                class="menu-list-btn menu-view-btn-secondary"
+                                (click)="viewDetails(item)"
+                                aria-label="View details">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button 
+                                *ngIf="isEditable"
+                                class="menu-list-btn menu-edit-btn"
+                                (click)="openEditDialog(item)"
+                                aria-label="Edit item">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button 
+                                *ngIf="deleteMenuItem"
+                                class="menu-list-btn menu-delete-btn"
+                                (click)="confirmDelete(item)"
+                                aria-label="Delete item">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Empty State -->
+        <div *ngIf="!loading && filteredMenuItems.length === 0" class="menu-empty-state">
+            <div class="menu-empty-illustration">
+                <i class="fas fa-utensils menu-empty-icon"></i>
+            </div>
+            <h3 class="menu-empty-title">No Menu Items Found</h3>
+            <p class="menu-empty-message">Your search didn't match any menu items in your collection</p>
+            <button class="menu-empty-action" (click)="clearSearch()">Clear Search</button>
+        </div>
+        
+        <!-- Pagination -->
+        <div *ngIf="!loading && filteredMenuItems.length > 0" class="menu-pagination">
+            <div class="menu-pagination-info">
+                Showing {{ (currentPage - 1) * pageSize + 1 }} to {{ Math.min(currentPage * pageSize, filteredMenuItems.length) }} of {{ filteredMenuItems.length }} items
+            </div>
+            <div class="menu-pagination-controls">
+                <button 
+                    class="menu-page-btn menu-prev-btn" 
+                    [disabled]="currentPage === 1"
+                    (click)="goToPage(currentPage - 1)">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                
+                <div class="menu-page-numbers">
+                    <button 
+                        *ngIf="currentPage > 2"
+                        class="menu-page-number" 
+                        (click)="goToPage(1)">
+                        1
+                    </button>
+                    
+                    <span *ngIf="currentPage > 3" class="menu-page-ellipsis">...</span>
+                    
+                    <button 
+                        *ngIf="currentPage > 1"
+                        class="menu-page-number" 
+                        (click)="goToPage(currentPage - 1)">
+                        {{ currentPage - 1 }}
+                    </button>
+                    
+                    <button class="menu-page-number menu-page-current">
+                        {{ currentPage }}
+                    </button>
+                    
+                    <button 
+                        *ngIf="currentPage < totalPages"
+                        class="menu-page-number" 
+                        (click)="goToPage(currentPage + 1)">
+                        {{ currentPage + 1 }}
+                    </button>
+                    
+                    <span *ngIf="currentPage < totalPages - 2" class="menu-page-ellipsis">...</span>
+                    
+                    <button 
+                        *ngIf="currentPage < totalPages - 1"
+                        class="menu-page-number" 
+                        (click)="goToPage(totalPages)">
+                        {{ totalPages }}
+                    </button>
+                </div>
+                
+                <button 
+                    class="menu-page-btn menu-next-btn"
+                    [disabled]="currentPage === totalPages" 
+                    (click)="goToPage(currentPage + 1)">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            
+            <div class="menu-page-size">
+                <label for="pageSize" class="menu-page-size-label">Items per page:</label>
+                <select id="pageSize" class="menu-page-size-select" [(ngModel)]="pageSize" (change)="updatePageSize()">
+                    <option value="6">6</option>
+                    <option value="12">12</option>
+                    <option value="24">24</option>
+                    <option value="48">48</option>
+                </select>
+            </div>
+        </div>
+    </main>
+
+    <!-- Create/Edit Dialog -->
+    <div class="menu-modal-backdrop" *ngIf="showDialog" (click)="closeDialogIfBackdrop($event)">
+        <div class="menu-modal-container" (click)="$event.stopPropagation()">
+            <div class="menu-modal-header">
+                <h2 class="menu-modal-title">{{ editingItem ? 'Edit Menu Item' : 'Create New Menu Item' }}</h2>
+                <button class="menu-modal-close" (click)="closeDialog()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="menu-modal-divider"></div>
+            
+            <div class="menu-modal-body">
+                <form [formGroup]="menuForm" (ngSubmit)="onSubmit()" class="menu-form">
+                    <div class="menu-form-columns">
+                        <div class="menu-form-left">
+                            <div class="menu-form-group">
+                                <label class="menu-form-label">Item Name <span class="menu-required-mark">*</span></label>
+                                <input 
+                                    type="text" 
+                                    formControlName="name"
+                                    class="menu-form-input"
+                                    [class.menu-input-error]="menuForm.get('name')?.invalid && menuForm.get('name')?.touched"
+                                    placeholder="Enter menu item name"
+                                />
+                                <div *ngIf="menuForm.get('name')?.invalid && menuForm.get('name')?.touched" class="menu-error-message">
+                                    <span *ngIf="menuForm.get('name')?.errors?.['required']">Name is required</span>
+                                </div>
+                            </div>
+
+                            <div class="menu-form-group">
+                                <label class="menu-form-label">Description</label>
+                                <textarea 
+                                    formControlName="description"
+                                    class="menu-form-textarea"
+                                    placeholder="Enter item description"
+                                    rows="3"
+                                ></textarea>
+                            </div>
+
+                            <div class="menu-form-row">
+                                <div class="menu-form-group menu-form-half">
+                                    <label class="menu-form-label">Base Price ($) <span class="menu-required-mark">*</span></label>
+                                    <input 
+                                        type="number" 
+                                        step="0.01"
+                                        min="0"
+                                        formControlName="basePrice"
+                                        class="menu-form-input"
+                                        [class.menu-input-error]="menuForm.get('basePrice')?.invalid && menuForm.get('basePrice')?.touched"
+                                        placeholder="0.00"
+                                    />
+                                    <div *ngIf="menuForm.get('basePrice')?.invalid && menuForm.get('basePrice')?.touched" class="menu-error-message">
+                                        <span *ngIf="menuForm.get('basePrice')?.errors?.['required']">Price is required</span>
+                                        <span *ngIf="menuForm.get('basePrice')?.errors?.['min']">Price cannot be negative</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="menu-form-group menu-form-half">
+                                    <label class="menu-form-label">Calories <span class="menu-required-mark">*</span></label>
+                                    <input 
+                                        type="number" 
+                                        step="0.1"
+                                        min="0"
+                                        formControlName="calories"
+                                        class="menu-form-input"
+                                        [class.menu-input-error]="menuForm.get('calories')?.invalid && menuForm.get('calories')?.touched"
+                                        placeholder="0"
+                                    />
+                                    <div *ngIf="menuForm.get('calories')?.invalid && menuForm.get('calories')?.touched" class="menu-error-message">
+                                        <span *ngIf="menuForm.get('calories')?.errors?.['required']">Calories is required</span>
+                                        <span *ngIf="menuForm.get('calories')?.errors?.['min']">Calories cannot be negative</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="menu-form-group">
+                                <label class="menu-form-label">Category <span class="menu-required-mark">*</span></label>
+                                <select 
+                                    formControlName="categoryId"
+                                    class="menu-form-select"
+                                    [class.menu-input-error]="menuForm.get('categoryId')?.invalid && menuForm.get('categoryId')?.touched">
+                                    <option [ngValue]="null" disabled>Select a category</option>
+                                    <option *ngFor="let category of categories" [ngValue]="category.id">{{category.name}}</option>
+                                </select>
+                                <div *ngIf="menuForm.get('categoryId')?.invalid && menuForm.get('categoryId')?.touched" class="menu-error-message">
+                                    <span *ngIf="menuForm.get('categoryId')?.errors?.['required']">Category is required</span>
+                                </div>
+                            </div>
+
+                            <!-- Spice Level Section -->
+                            <div class="menu-form-group">
+                                <label class="menu-form-label">Spice Level</label>
+                                <div class="menu-spice-level-container">
+                                    <div class="menu-spice-level-options">
+                                        <div *ngFor="let level of spiceLevelOptions" 
+                                             class="menu-spice-level-option" 
+                                             [class.menu-spice-level-selected]="menuForm.get('spiceLevel')?.value === level.value"
+                                             (click)="menuForm.get('spiceLevel')?.setValue(level.value)">
+                                            <i class="fas fa-pepper-hot" 
+                                               [style.color]="getSpiceLevelColor(level.value)"></i>
+                                            <span>{{ level.label }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="menu-form-help" *ngIf="menuForm.get('isSpicy')?.value">
+                                    Select the spice level for this item. If "Not Spicy" is selected, the item will not be marked as spicy.
+                                </div>
+                            </div>
+
+                            <div class="menu-form-row">
+                                <div class="menu-form-group menu-form-half">
+                                    <label class="menu-form-label">Item Status</label>
+                                    <div class="menu-toggle-container">
+                                        <label class="menu-toggle">
+                                            <input type="checkbox" formControlName="unavailable">
+                                            <span class="menu-toggle-slider"></span>
+                                        </label>
+                                        <span class="menu-toggle-label">{{ menuForm.get('unavailable')?.value ? 'Unavailable' : 'Available' }}</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="menu-form-group menu-form-half">
+                                    <label class="menu-form-label">New Item</label>
+                                    <div class="menu-toggle-container">
+                                        <label class="menu-toggle">
+                                            <input type="checkbox" formControlName="isNew">
+                                            <span class="menu-toggle-slider"></span>
+                                        </label>
+                                        <span class="menu-toggle-label">{{ menuForm.get('isNew')?.value ? 'New Item' : 'Regular Item' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="menu-form-row">
+                                <div class="menu-form-group menu-form-half">
+                                    <label class="menu-form-label">Vegetarian</label>
+                                    <div class="menu-toggle-container">
+                                        <label class="menu-toggle">
+                                            <input type="checkbox" formControlName="isVegetarian">
+                                            <span class="menu-toggle-slider"></span>
+                                        </label>
+                                        <span class="menu-toggle-label">{{ menuForm.get('isVegetarian')?.value ? 'Vegetarian' : 'Non-Vegetarian' }}</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="menu-form-group menu-form-half">
+                                    <label class="menu-form-label">Spicy</label>
+                                    <div class="menu-toggle-container">
+                                        <label class="menu-toggle">
+                                            <input type="checkbox" formControlName="isSpicy">
+                                            <span class="menu-toggle-slider"></span>
+                                        </label>
+                                        <span class="menu-toggle-label">{{ menuForm.get('isSpicy')?.value ? 'Spicy' : 'Not Spicy' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="menu-form-row">
+                                <div class="menu-form-group menu-form-half">
+                                    <label class="menu-form-label">Customizable</label>
+                                    <div class="menu-toggle-container">
+                                        <label class="menu-toggle">
+                                            <input type="checkbox" formControlName="customizable">
+                                            <span class="menu-toggle-slider"></span>
+                                        </label>
+                                        <span class="menu-toggle-label">{{ menuForm.get('customizable')?.value ? 'Customizable' : 'Not Customizable' }}</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="menu-form-group menu-form-half">
+                                    <label class="menu-form-label">Has Add-ons</label>
+                                    <div class="menu-toggle-container">
+                                        <label class="menu-toggle">
+                                            <input type="checkbox" formControlName="hasAddOns">
+                                            <span class="menu-toggle-slider"></span>
+                                        </label>
+                                        <span class="menu-toggle-label">{{ menuForm.get('hasAddOns')?.value ? 'Has Add-ons' : 'No Add-ons' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-form-right">
+                            <!-- Item Image Upload Section -->
+                            <div class="menu-image-upload">
+                                <label class="menu-form-label">Item Image</label>
+                                
+                                <div class="menu-image-preview-container">
+                                    <div class="menu-image-preview" [class.menu-has-image]="imagePreview || (editingItem && editingItem.imagePath)">
+                                        <img 
+                                            *ngIf="imagePreview" 
+                                            [src]="imagePreview" 
+                                            alt="Image preview" 
+                                            class="menu-preview-img"
+                                        />
+                                        <img 
+                                            *ngIf="!imagePreview && editingItem && editingItem.imagePath" 
+                                            [src]="getImagePath(editingItem)" 
+                                            alt="Current image" 
+                                            class="menu-preview-img"
+                                            (error)="handleImageError($event)"
+                                        />
+                                        <div *ngIf="!imagePreview && (!editingItem || !editingItem.imagePath)" class="menu-no-image">
+                                            <i class="fas fa-image"></i>
+                                            <span>No image selected</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="menu-image-tabs">
+                                    <button 
+                                        type="button"
+                                        class="menu-image-tab" 
+                                        [class.menu-tab-active]="imageInputType === 'file'"
+                                        (click)="setImageInputType('file')">
+                                        Upload Image
+                                    </button>
+                                    <button 
+                                        type="button"
+                                        class="menu-image-tab" 
+                                        [class.menu-tab-active]="imageInputType === 'url'"
+                                        (click)="setImageInputType('url')">
+                                        Image URL
+                                    </button>
+                                </div>
+                                
+                                <div *ngIf="imageInputType === 'file'" class="menu-file-upload">
+                                    <label class="menu-upload-btn">
+                                        <input 
+                                            type="file" 
+                                            (change)="onImageSelect($event)"
+                                            accept="image/*"
+                                            hidden
+                                        />
+                                        <i class="fas fa-upload"></i>
+                                        <span>{{ menuForm.get('image')?.value ? 'Change Image' : 'Select Image' }}</span>
+                                    </label>
+                                    <span *ngIf="menuForm.get('image')?.value" class="menu-filename">
+                                        {{ getFileName() }}
+                                    </span>
+                                </div>
+                                
+                                <div *ngIf="imageInputType === 'url'" class="menu-url-input">
+                                    <input 
+                                        type="text" 
+                                        class="menu-form-input"
+                                        formControlName="imageUrl"
+                                        placeholder="Enter image URL"
+                                        (blur)="updateImagePreviewFromUrl()"
+                                    />
+                                    <button 
+                                        type="button"
+                                        class="menu-preview-url-btn"
+                                        (click)="updateImagePreviewFromUrl()">
+                                        Preview
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Customization Groups Section -->
+                            <div *ngIf="menuForm.get('customizable')?.value" class="menu-customization-section">
+                                <div class="menu-section-header">
+                                    <h3 class="menu-section-title">Customization Groups</h3>
+                                    <button type="button" class="menu-manage-customization-btn" (click)="openCustomizationManager()">
+                                        <i class="fas fa-plus"></i> Add Group
+                                    </button>
+                                </div>
+                                
+                                <div class="menu-customization-list">
+                                    <div *ngIf="customizationGroupsControls.length === 0" class="menu-no-customizations">
+                                        <p>No customization groups added yet. Click "Add Group" to add customization options to this menu item.</p>
+                                    </div>
+                                    
+                                    <div *ngFor="let groupControl of customizationGroupsControls; let i = index" class="menu-customization-card">
+                                        <div class="menu-customization-content">
+                                            <h4 class="menu-customization-name">{{getCustomizationGroupName(groupControl.get('id')?.value)}}</h4>
+                                            <div class="menu-customization-info">
+                                                <span *ngIf="groupControl.get('required')?.value" class="menu-customization-required">
+                                                    <i class="fas fa-asterisk"></i> Required
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="menu-customization-actions">
+                                            <button type="button" class="menu-customization-move" [disabled]="i === 0" (click)="moveGroupUp(i)">
+                                                <i class="fas fa-arrow-up"></i>
+                                            </button>
+                                            <button type="button" class="menu-customization-move" [disabled]="i === customizationGroupsControls.length - 1" (click)="moveGroupDown(i)">
+                                                <i class="fas fa-arrow-down"></i>
+                                            </button>
+                                            <button type="button" class="menu-customization-remove" (click)="removeCustomizationGroup(i)">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Add-ons Section (Enhanced with images and checkboxes) -->
+                            <div *ngIf="menuForm.get('hasAddOns')?.value" class="menu-addon-section">
+                                <div class="menu-section-header">
+                                    <h3 class="menu-section-title">Available Add-ons</h3>
+                                </div>
+                                
+                                <div class="menu-addon-selector">
+                                    <div class="menu-addon-grid">
+                                        <div *ngFor="let addon of addOns" 
+                                             class="menu-addon-card" 
+                                             [class.menu-addon-selected]="addon.id ? isAddonSelected(addon.id) : false"
+                                             (click)="addon.id && toggleAddon(addon.id)">
+                                            <div class="menu-addon-checkbox">
+                                                <input type="checkbox" 
+                                                       [checked]="addon.id ? isAddonSelected(addon.id) : false"
+                                                       (click)="$event.stopPropagation()"
+                                                       (change)="addon.id && toggleAddon(addon.id)">
+                                            </div>
+                                            <div class="menu-addon-image">
+                                                <img [src]="getAddonImagePath(addon)" 
+                                                     [alt]="addon.addOnName || addon.name"
+                                                     (error)="handleImageError($event)">
+                                            </div>
+                                            <div class="menu-addon-details">
+                                                <h4 class="menu-addon-name">{{ addon.addOnName || addon.name }}</h4>
+                                                <div class="menu-addon-price">${{ formatPrice((addon.addOnPrice || addon.price) ?? 0) }}</div>
+                                                <div class="menu-addon-badges">
+                                                    <span *ngIf="addon.vegetarian" class="menu-addon-badge menu-vegetarian">
+                                                        <i class="fas fa-leaf"></i>
+                                                    </span>
+                                                    <span *ngIf="addon.spiceLevel && addon.spiceLevel !== 'NONE'" 
+                                                         class="menu-addon-badge menu-spicy" 
+                                                         [style.background-color]="getSpiceLevelColor(addon.spiceLevel)">
+                                                        <i class="fas fa-pepper-hot"></i>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="menu-modal-divider"></div>
+                    
+                    <div class="menu-form-actions">
+                        <button 
+                            type="button" 
+                            class="menu-btn-secondary"
+                            (click)="closeDialog()">
+                            Cancel
+                        </button>
+                        <button 
+                            type="submit" 
+                            class="menu-btn-primary"
+                            [disabled]="menuForm.invalid || loading || formSubmitting">
+                            <span *ngIf="!loading && !formSubmitting">{{ editingItem ? 'Update Item' : 'Create Item' }}</span>
+                            <span *ngIf="loading || formSubmitting" class="menu-btn-loader">
+                                <i class="fas fa-spinner fa-spin"></i> Saving...
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customization Group Selection Dialog -->
+    <div class="menu-modal-backdrop" *ngIf="showCustomizationModal" (click)="closeCustomizationManager()">
+        <div class="menu-modal-container menu-customization-modal" (click)="$event.stopPropagation()">
+            <div class="menu-modal-header">
+                <h2 class="menu-modal-title">Add Customization Group</h2>
+                <button class="menu-modal-close" (click)="closeCustomizationManager()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="menu-modal-divider"></div>
+            
+            <div class="menu-modal-body">
+                <div class="menu-customization-grid">
+                    <div *ngFor="let group of customizationGroups" class="menu-customization-select-card">
+                        <div class="menu-customization-select-content">
+                            <h4 class="menu-customization-select-name">{{group.name}}</h4>
+                            <p class="menu-customization-select-description">{{group.description || 'No description provided'}}</p>
+                            <div class="menu-customization-select-features">
+                                <span *ngIf="group.required" class="menu-feature-tag menu-required-tag">
+                                    <i class="fas fa-asterisk"></i> Required
+                                </span>
+                                <span *ngIf="group.positionEnabled" class="menu-feature-tag menu-position-tag">
+                                    <i class="fas fa-arrows-alt"></i> Position
+                                </span>
+                                <span *ngIf="group.quantityEnabled" class="menu-feature-tag menu-quantity-tag">
+                                    <i class="fas fa-sort-amount-up"></i> Quantity
+                                </span>
+                                <span *ngIf="group.allowMultiple" class="menu-feature-tag menu-multiple-tag">
+                                    <i class="fas fa-list-ul"></i> Multiple
+                                </span>
+                            </div>
+                        </div>
+                        <div class="menu-customization-select-action">
+                            <button class="menu-select-group-btn" (click)="addCustomizationGroup(group)">
+                                Add to Item
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="menu-modal-divider"></div>
+            
+            <div class="menu-form-actions">
+                <button class="menu-btn-primary" (click)="closeCustomizationManager()">
+                    Done
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Item Details Modal -->
+    <div class="menu-modal-backdrop" *ngIf="showDetailsModal" (click)="closeDetailsModal($event)">
+        <div class="menu-modal-container menu-details-modal" (click)="$event.stopPropagation()">
+            <div class="menu-modal-header">
+                <h2 class="menu-modal-title">Menu Item Details</h2>
+                <button class="menu-modal-close" (click)="closeDetailsModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="menu-modal-divider"></div>
+            
+            <div class="menu-modal-body" *ngIf="selectedItem">
+                <div class="menu-details-content">
+                    <div class="menu-details-image">
+                        <img 
+                            [src]="getImagePath(selectedItem)" 
+                            [alt]="selectedItem.name"
+                            (error)="handleImageError($event)"
+                        />
+                    </div>
+                    
+                    <div class="menu-details-info">
+                        <div class="menu-details-price">${{selectedItem.basePrice.toFixed(2)}}</div>
+                        <h3 class="menu-details-name">{{ selectedItem.name }}</h3>
+                        
+                        <div class="menu-details-badges">
+                            <span *ngIf="selectedItem.unavailable" class="menu-badge menu-badge-unavailable">
+                                <i class="fas fa-ban"></i> Unavailable
+                            </span>
+                            <span *ngIf="selectedItem.isNew" class="menu-badge menu-badge-new">
+                                <i class="fas fa-star"></i> New
+                            </span>
+                            <span *ngIf="selectedItem.isVegetarian" class="menu-badge menu-badge-vegetarian">
+                                <i class="fas fa-leaf"></i> Vegetarian
+                            </span>
+                            <span *ngIf="selectedItem.isSpicy" class="menu-badge menu-badge-spicy">
+                                <i class="fas fa-pepper-hot"></i> Spicy
+                            </span>
+                            <span *ngIf="selectedItem.customizable" class="menu-badge menu-badge-customizable">
+                                <i class="fas fa-sliders-h"></i> Customizable
+                            </span>
+                        </div>
+                        
+                        <div class="menu-details-section">
+                            <h4 class="menu-details-section-title">Description</h4>
+                            <p class="menu-details-description">{{ selectedItem.description || 'No description provided' }}</p>
+                        </div>
+                        
+                        <div class="menu-details-section">
+                            <h4 class="menu-details-section-title">Details</h4>
+                            <div class="menu-details-info-grid">
+                                <div class="menu-details-info-item">
+                                    <span class="menu-details-label">Category:</span>
+                                    <span class="menu-details-value">{{ getCategoryName(selectedItem.category?.id || 0) }}</span>
+                                </div>
+                                <div class="menu-details-info-item">
+                                    <span class="menu-details-label">Calories:</span>
+                                    <span class="menu-details-value">{{ selectedItem.calories }}</span>
+                                </div>
+                                <div *ngIf="selectedItem.isSpicy && selectedItem.spiceLevel" class="menu-details-info-item">
+                                    <span class="menu-details-label">Spice Level:</span>
+                                    <span class="menu-details-value">{{ getSpiceLevelLabel(selectedItem.spiceLevel) }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div *ngIf="selectedItem.customizable && selectedItem.customizationGroups" class="menu-details-section">
+                            <h4 class="menu-details-section-title">
+                                Customization Groups
+                                <span class="menu-details-count">{{ selectedItem.customizationGroups.length }}</span>
+                            </h4>
+                            <div *ngIf="!selectedItem.customizationGroups || selectedItem.customizationGroups.length === 0" class="menu-details-no-items">
+                                No customization groups assigned to this item.
+                            </div>
+                            <div class="menu-details-groups">
+                                <div *ngFor="let group of selectedItem.customizationGroups" class="menu-details-group">
+                                    <div class="menu-details-group-header">
+                                        <h5 class="menu-details-group-name">
+                                            {{ group.name }}
+                                            <span *ngIf="group.required" class="menu-details-group-required">
+                                                <i class="fas fa-asterisk"></i> Required
+                                            </span>
+                                        </h5>
+                                    </div>
+                                    <p *ngIf="group.description" class="menu-details-group-description">
+                                        {{ group.description }}
+                                    </p>
+                                    <div class="menu-details-group-features">
+                                        <span *ngIf="group.positionEnabled" class="menu-feature-small">
+                                            <i class="fas fa-arrows-alt"></i> Position
+                                        </span>
+                                        <span *ngIf="group.quantityEnabled" class="menu-feature-small">
+                                            <i class="fas fa-sort-amount-up"></i> Quantity
+                                        </span>
+                                        <span *ngIf="group.allowMultiple" class="menu-feature-small">
+                                            <i class="fas fa-list-ul"></i> Multiple
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div *ngIf="selectedItem.hasAddOns && selectedItem.addOns && selectedItem.addOns.length > 0" class="menu-details-section">
+                            <h4 class="menu-details-section-title">
+                                Available Add-ons
+                                <span class="menu-details-count">{{ selectedItem.addOns.length }}</span>
+                            </h4>
+                            <div class="menu-details-addons-grid">
+                                <div *ngFor="let addonId of selectedItem.addOns" class="menu-details-addon-card">
+                                    <div class="menu-details-addon-content">
+                                        <div class="menu-details-addon-image">
+                                            <img [src]="getAddonImagePath(getAddonById(addonId))" 
+                                                 [alt]="getAddonName(addonId)"
+                                                 (error)="handleImageError($event)">
+                                        </div>
+                                        <div class="menu-details-addon-info">
+                                            <h5 class="menu-details-addon-name">{{ getAddonName(addonId) }}</h5>
+                                            <div class="menu-details-addon-price">${{ formatPrice(getAddonPrice(addonId)) }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="menu-modal-divider"></div>
+            
+            <div class="menu-details-actions">
+                <button 
+                    *ngIf="isEditable"
+                    class="menu-btn-secondary"
+                    (click)="editFromDetails()">
+                    <i class="fas fa-edit"></i> Edit Item
+                </button>
+                <button 
+                    class="menu-btn-primary"
+                    (click)="closeDetailsModal()">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="menu-modal-backdrop" *ngIf="showDeleteConfirmation" (click)="cancelDelete($event)">
+        <div class="menu-modal-container menu-delete-modal" (click)="$event.stopPropagation()">
+            <div class="menu-modal-header">
+                <h2 class="menu-modal-title menu-delete-title">Confirm Deletion</h2>
+                <button class="menu-modal-close" (click)="cancelDelete()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="menu-modal-divider"></div>
+            
+            <div class="menu-modal-body">
+                <div class="menu-delete-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                
+                <h3 class="menu-delete-heading">Are you sure you want to delete this menu item?</h3>
+                
+                <p class="menu-delete-message">
+                    You are about to delete "<strong>{{ itemToDelete?.name }}</strong>". 
+                    This action cannot be undone and this item will be removed from your menu.
+                </p>
+                
+                <div class="menu-delete-item">
+                    <div class="menu-delete-preview">
+                        <img 
+                            *ngIf="itemToDelete?.imagePath" 
+                            [src]="getImagePath(itemToDelete!)" 
+                            [alt]="itemToDelete?.name"
+                            (error)="handleImageError($event)"
+                        />
+                        <div *ngIf="!itemToDelete?.imagePath" class="menu-no-preview">
+                            <i class="fas fa-image"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="menu-delete-details">
+                        <h4 class="menu-delete-name">{{ itemToDelete?.name }}</h4>
+                        <p class="menu-delete-description">{{ itemToDelete?.description || 'No description' }}</p>
+                        <div class="menu-delete-price">${{ itemToDelete?.basePrice?.toFixed(2) ?? '0.00' }}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="menu-modal-divider"></div>
+            
+            <div class="menu-delete-actions">
+                <button 
+                    class="menu-btn-secondary"
+                    (click)="cancelDelete()">
+                    Cancel
+                </button>
+                <button 
+                    class="menu-btn-danger"
+                    [disabled]="deletingItem"
+                    (click)="proceedWithDelete()">
+                    <span *ngIf="!deletingItem">
+                        <i class="fas fa-trash"></i> Delete Permanently
+                    </span>
+                    <span *ngIf="deletingItem" class="menu-btn-loader">
+                        <i class="fas fa-spinner fa-spin"></i> Deleting...
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div *ngIf="toast" class="menu-toast" [class.menu-toast-success]="toast.type === 'success'" [class.menu-toast-error]="toast.type === 'error'">
+        <div class="menu-toast-icon">
+            <i *ngIf="toast.type === 'success'" class="fas fa-check-circle"></i>
+            <i *ngIf="toast.type === 'error'" class="fas fa-exclamation-circle"></i>
+        </div>
+        <div class="menu-toast-content">
+            <p class="menu-toast-message">{{ toast.message }}</p>
+        </div>
+        <button class="menu-toast-close" (click)="dismissToast()">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="menu-toast-progress"></div>
+    </div>
+</div>

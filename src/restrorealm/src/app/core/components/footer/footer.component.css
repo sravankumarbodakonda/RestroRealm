@@ -1,0 +1,159 @@
+
+  /* Footer */
+  .site-footer {
+    background-color: #1a1b25;
+    color: white;
+    padding: 60px 0 20px;
+  }
+  
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+  
+  .footer-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 30px;
+    margin-bottom: 40px;
+  }
+  
+  .footer-logo h2 {
+    margin-top: 0;
+    font-size: 1.75rem;
+  }
+  
+  .footer-links h3,
+  .footer-social h3,
+  .footer-newsletter h3 {
+    margin-top: 0;
+    font-size: 1.25rem;
+    margin-bottom: 15px;
+    position: relative;
+    padding-bottom: 10px;
+  }
+  
+  .footer-links h3::after,
+  .footer-social h3::after,
+  .footer-newsletter h3::after {
+    content: "";
+    position: absolute;
+    width: 40px;
+    height: 2px;
+    background-color: #e74c3c;
+    bottom: 0;
+    left: 0;
+  }
+  
+  .footer-links ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .footer-links li {
+    margin-bottom: 10px;
+  }
+  
+  .footer-links a {
+    color: #ecf0f1;
+    text-decoration: none;
+    transition: color 0.3s;
+  }
+  
+  .footer-links a:hover {
+    color: #e74c3c;
+  }
+  
+  .social-icons {
+    display: flex;
+    gap: 15px;
+  }
+  
+  .social-icons a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    color: white;
+    transition: background-color 0.3s;
+  }
+  
+  .social-icons a:hover {
+    background-color: #e74c3c;
+  }
+  
+  .newsletter-form {
+    display: flex;
+    margin-top: 15px;
+  }
+  
+  .newsletter-form input {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 4px 0 0 4px;
+  }
+  
+  .newsletter-form button {
+    border-radius: 0 4px 4px 0;
+  }
+  
+  .copyright {
+    text-align: center;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 0.875rem;
+    color: #bdc3c7;
+  }
+
+  .btn-primary {
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  .btn-primary:hover {
+    background-color: #c0392b;
+  }
+  
+  /* Responsive Styles */
+  @media (max-width: 768px) {
+    .hero-content h1 {
+      font-size: 2rem;
+    }
+    
+    .section-header h2 {
+      font-size: 2rem;
+    }
+    
+    .testimonial-text {
+      font-size: 1rem;
+    }
+    
+    .newsletter-form {
+      flex-direction: column;
+    }
+    
+    .newsletter-form input {
+      width: 93%;
+      border-radius: 4px;
+    }
+    .newsletter-form button {
+      width: 100%;
+      border-radius: 4px;
+    }
+    
+    .newsletter-form button {
+      margin-top: 10px;
+    }
+  }

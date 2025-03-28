@@ -1,0 +1,415 @@
+<!-- HTML Template -->
+<div class="reservation-container">
+  <!-- RestroRealm Branding -->
+  <div class="brand-header">
+    <div class="logo">
+      <div class="logo-icon">R</div>
+      <div class="logo-text">RestroRealm</div>
+    </div>
+    <div class="tagline">Exceptional Dining Experiences</div>
+  </div>
+
+  <!-- Premium Header Images -->
+  <div class="header-image-container">
+    <div class="header-image" *ngIf="currentStep === 1"></div>
+    <div class="header-image table-image" *ngIf="currentStep === 2"></div>
+    <div class="header-image details-image" *ngIf="currentStep === 3"></div>
+    <div class="header-image success-image" *ngIf="reservationComplete"></div>
+    <div class="image-overlay"></div>
+    <h2 class="header-title" *ngIf="currentStep === 1">Reserve Your Experience</h2>
+    <h2 class="header-title" *ngIf="currentStep === 2">Select Your Table</h2>
+    <h2 class="header-title" *ngIf="currentStep === 3">Complete Your Booking</h2>
+    <h2 class="header-title" *ngIf="reservationComplete">Reservation Confirmed</h2>
+  </div>
+
+  <!-- Elegant Progress Indicator -->
+  <div class="progress-container" *ngIf="!reservationComplete">
+    <div class="progress-item" [class.active]="currentStep >= 1">
+      <div class="progress-circle">
+        <div class="progress-number">1</div>
+        <svg class="progress-check" *ngIf="currentStep > 1" viewBox="0 0 24 24">
+          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+        </svg>
+      </div>
+      <div class="progress-label">Details</div>
+    </div>
+    <div class="progress-line" [class.active]="currentStep >= 2"></div>
+    <div class="progress-item" [class.active]="currentStep >= 2">
+      <div class="progress-circle">
+        <div class="progress-number">2</div>
+        <svg class="progress-check" *ngIf="currentStep > 2" viewBox="0 0 24 24">
+          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+        </svg>
+      </div>
+      <div class="progress-label">Table</div>
+    </div>
+    <div class="progress-line" [class.active]="currentStep >= 3"></div>
+    <div class="progress-item" [class.active]="currentStep >= 3">
+      <div class="progress-circle">
+        <div class="progress-number">3</div>
+      </div>
+      <div class="progress-label">Confirm</div>
+    </div>
+  </div>
+  
+  <!-- Step 1: Date, Time & Party Size -->
+  <div class="reservation-step" *ngIf="currentStep === 1">
+    <div class="form-grid">
+      <div class="form-group full">
+        <label for="occasion">Occasion</label>
+        <div class="select-wrapper">
+          <select id="occasion" [(ngModel)]="occasion">
+            <option value="regular">Regular Dining</option>
+            <option value="birthday">Birthday Celebration</option>
+            <option value="anniversary">Anniversary</option>
+            <option value="business">Business Meeting</option>
+            <option value="special">Special Occasion</option>
+          </select>
+          <div class="select-arrow"></div>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="date">Date</label>
+        <div class="premium-input">
+          <i class="far fa-calendar-alt"></i>
+          <input id="date" type="date" [(ngModel)]="date" required>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="time">Preferred Time</label>
+        <div class="premium-input">
+          <i class="far fa-clock"></i>
+          <input id="time" type="time" [(ngModel)]="time" required>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="guests">Party Size</label>
+        <div class="number-input">
+          <button type="button" class="number-dec" (click)="adjustGuests(-1)" [disabled]="numGuests <= 1"></button>
+          <input id="guests" type="number" [(ngModel)]="numGuests" min="1" max="20" readonly>
+          <button type="button" class="number-inc" (click)="adjustGuests(1)" [disabled]="numGuests >= 20"></button>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="duration">Duration</label>
+        <div class="premium-input">
+          <i class="fas fa-hourglass-half"></i>
+          <select id="duration" [(ngModel)]="duration">
+            <option [value]="1">1 hour</option>
+            <option [value]="1.5">1.5 hours</option>
+            <option [value]="2">2 hours</option>
+            <option [value]="2.5">2.5 hours</option>
+            <option [value]="3">3 hours</option>
+          </select>
+          <div class="select-arrow"></div>
+        </div>
+      </div>
+    </div>
+    
+    <button class="btn-premium" (click)="findTables()" [disabled]="!date || !time">
+      <span>Find Available Tables</span>
+      <i class="fas fa-arrow-right"></i>
+    </button>
+    
+    <div class="time-recommendations" *ngIf="date && !time">
+      <h4>Popular Times</h4>
+      <div class="popular-times">
+        <div class="popular-time" (click)="time = '18:00'">6:00 PM</div>
+        <div class="popular-time" (click)="time = '19:00'">7:00 PM</div>
+        <div class="popular-time" (click)="time = '20:00'">8:00 PM</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Step 2: Select Available Table -->
+  <div class="reservation-step" *ngIf="currentStep === 2">
+    <!-- Floor Plan Layout -->
+    <div class="floor-plan-container">
+      <div class="floor-plan-header">
+        <h3>Restaurant Floor Plan</h3>
+        <div class="floor-plan-legend">
+          <div class="legend-item">
+            <div class="legend-color window"></div>
+            <div class="legend-label">Window</div>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color center"></div>
+            <div class="legend-label">Center</div>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color corner"></div>
+            <div class="legend-label">Corner</div>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color unavailable"></div>
+            <div class="legend-label">Unavailable</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="floor-plan">
+        <!-- Window tables (top row) -->
+        <div class="table-row window-row">
+          <div class="window-marker">Window View</div>
+          <div class="table-group">
+            <div class="restaurant-table window" 
+                 *ngFor="let table of getTablesByLocation('window')"
+                 [class.selected]="selectedTableId === table.id"
+                 [class.available]="true"
+                 (click)="selectTable(table.id)">
+              <div class="table-number">{{table.id}}</div>
+              <div class="table-capacity">{{table.capacity}}</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Center tables (middle area) -->
+        <div class="table-row center-row">
+          <div class="table-group">
+            <div class="restaurant-table center" 
+                 *ngFor="let table of getTablesByLocation('center')"
+                 [class.selected]="selectedTableId === table.id"
+                 [class.available]="true"
+                 (click)="selectTable(table.id)">
+              <div class="table-number">{{table.id}}</div>
+              <div class="table-capacity">{{table.capacity}}</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Corner tables (bottom row) -->
+        <div class="table-row corner-row">
+          <div class="table-group">
+            <div class="restaurant-table corner" 
+                 *ngFor="let table of getTablesByLocation('corner')"
+                 [class.selected]="selectedTableId === table.id"
+                 [class.available]="true"
+                 (click)="selectTable(table.id)">
+              <div class="table-number">{{table.id}}</div>
+              <div class="table-capacity">{{table.capacity}}</div>
+            </div>
+          </div>
+          <div class="corner-marker">Private Corner</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Time slot selection -->
+    <div class="time-selection" *ngIf="selectedTableId">
+      <h3>Available Time Slots</h3>
+      <p class="time-selection-date">{{date | date:'EEEE, MMMM d'}}</p>
+      
+      <div class="time-slots">
+        <div class="time-slot" *ngFor="let slot of availableSlots"
+             [class.selected]="selectedTime === slot"
+             (click)="selectedTime = slot">
+          {{slot}}
+        </div>
+      </div>
+    </div>
+    
+    <div class="buttons-row">
+      <button class="btn-back" (click)="currentStep = 1">
+        <i class="fas fa-arrow-left"></i>
+        <span>Back</span>
+      </button>
+      <button class="btn-premium" (click)="currentStep = 3" [disabled]="!selectedTableId || !selectedTime">
+        <span>Continue</span>
+        <i class="fas fa-arrow-right"></i>
+      </button>
+    </div>
+  </div>
+  
+  <!-- Step 3: Customer Details -->
+  <div class="reservation-step" *ngIf="currentStep === 3">
+    <div class="step-columns">
+      <div class="details-column">
+        <div *ngIf="!isLoggedIn">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="firstName">First Name</label>
+              <div class="premium-input">
+                <i class="far fa-user"></i>
+                <input id="firstName" type="text" [(ngModel)]="firstName" required>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="lastName">Last Name</label>
+              <div class="premium-input">
+                <input id="lastName" type="text" [(ngModel)]="lastName" required>
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-group full">
+            <label for="email">Email Address</label>
+            <div class="premium-input">
+              <i class="far fa-envelope"></i>
+              <input id="email" type="email" [(ngModel)]="email" required>
+            </div>
+          </div>
+          
+          <div class="form-group full">
+            <label for="phone">Phone Number</label>
+            <div class="premium-input">
+              <i class="fas fa-mobile-alt"></i>
+              <input id="phone" type="tel" [(ngModel)]="phone" required>
+            </div>
+          </div>
+          
+          <div class="form-group full">
+            <label for="requests">Special Requests</label>
+            <textarea id="requests" [(ngModel)]="specialRequests" rows="3" placeholder="Allergies, dietary restrictions, special occasions, seating preferences..."></textarea>
+          </div>
+        </div>
+      </div>
+      
+      <div class="summary-column">
+        <div class="reservation-summary">
+          <h3>Reservation Summary</h3>
+          
+          <div class="summary-item">
+            <div class="summary-icon"><i class="far fa-calendar-alt"></i></div>
+            <div class="summary-content">
+              <div class="summary-label">Date</div>
+              <div class="summary-value">{{date | date:'EEEE, MMMM d, yyyy'}}</div>
+            </div>
+          </div>
+          
+          <div class="summary-item">
+            <div class="summary-icon"><i class="far fa-clock"></i></div>
+            <div class="summary-content">
+              <div class="summary-label">Time</div>
+              <div class="summary-value">{{selectedTime}}</div>
+            </div>
+          </div>
+          
+          <div class="summary-item">
+            <div class="summary-icon"><i class="fas fa-users"></i></div>
+            <div class="summary-content">
+              <div class="summary-label">Party Size</div>
+              <div class="summary-value">{{numGuests}} guest<span *ngIf="numGuests > 1">s</span></div>
+            </div>
+          </div>
+          
+          <div class="summary-item">
+            <div class="summary-icon"><i class="fas fa-hourglass-half"></i></div>
+            <div class="summary-content">
+              <div class="summary-label">Duration</div>
+              <div class="summary-value">{{duration}} hour<span *ngIf="duration > 1">s</span></div>
+            </div>
+          </div>
+          
+          <div class="summary-item">
+            <div class="summary-icon"><i class="fas fa-utensils"></i></div>
+            <div class="summary-content">
+              <div class="summary-label">Table</div>
+              <div class="summary-value">Table {{selectedTableId}} ({{getTableLocation(selectedTableId)}})</div>
+            </div>
+          </div>
+          
+          <div class="summary-item" *ngIf="occasion !== 'regular'">
+            <div class="summary-icon"><i class="fas fa-glass-cheers"></i></div>
+            <div class="summary-content">
+              <div class="summary-label">Occasion</div>
+              <div class="summary-value">{{occasion | titlecase}}</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="dining-policy">
+          <h4>Dining Policies</h4>
+          <ul>
+            <li>Reservations are held for 15 minutes past the booking time</li>
+            <li>A credit card is required for reservations of 6 or more guests</li>
+            <li>Cancellations must be made at least 24 hours in advance</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    
+    <div class="buttons-row">
+      <button class="btn-back" (click)="currentStep = 2">
+        <i class="fas fa-arrow-left"></i>
+        <span>Back</span>
+      </button>
+      <button class="btn-confirm" (click)="makeReservation()" [disabled]="!isValidReservation()">
+        <i class="fas fa-check"></i>
+        <span>Confirm Reservation</span>
+      </button>
+    </div>
+  </div>
+  
+  <!-- Success Message -->
+  <div class="reservation-success" *ngIf="reservationComplete">
+    <div class="success-animation">
+      <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+        <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+        <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+      </svg>
+    </div>
+    
+    <div class="success-message">
+      <h3>Your Table is Reserved!</h3>
+      <p>We're looking forward to serving you at RestroRealm.</p>
+      
+      <div class="confirmation-detail">
+        <div class="confirmation-code">
+          <div class="code-label">Confirmation Code</div>
+          <div class="code-value">{{confirmationCode}}</div>
+        </div>
+        
+        <!-- <div class="reservation-qrcode"></div> -->
+      </div>
+      
+      <p class="confirmation-email">A confirmation email has been sent to <strong>{{email}}</strong></p>
+      
+      <div class="add-calendar">
+        <button class="btn-calendar">
+          <i class="far fa-calendar-plus"></i>
+          <span>Add to Calendar</span>
+        </button>
+      </div>
+    </div>
+    
+    <button class="btn-new-reservation" (click)="resetForm()">
+      <span>Make Another Reservation</span>
+    </button>
+  </div>
+  
+  <!-- Modal Overlay (for success and failure modals) -->
+  <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()"></div>
+  
+  <!-- Success Modal -->
+  <div class="modal success-modal" *ngIf="showSuccessModal">
+    <div class="modal-content">
+      <div class="modal-icon success">
+        <i class="fas fa-check-circle"></i>
+      </div>
+      <h3>Reservation Successful!</h3>
+      <p>Your table has been reserved successfully. Confirmation code: <strong>{{confirmationCode}}</strong></p>
+      <button class="btn-modal-close" (click)="closeModal()">
+        <span>Close</span>
+      </button>
+    </div>
+  </div>
+  
+  <!-- Error Modal -->
+  <div class="modal error-modal" *ngIf="showErrorModal" [class.fade-out]="isErrorFading">
+    <div class="modal-content">
+      <div class="modal-icon error">
+        <i class="fas fa-exclamation-circle"></i>
+      </div>
+      <h3>Reservation Failed</h3>
+      <p>{{errorMessage}}</p>
+      <button class="btn-modal-close" (click)="closeModal()">
+        <span>Close</span>
+      </button>
+    </div>
+  </div>
+</div>

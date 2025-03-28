@@ -1,0 +1,730 @@
+<div class="admin-orders-container">
+  <!-- Loading overlay -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="loading-spinner">
+      <i class="fas fa-spinner fa-spin"></i>
+      <span>Loading...</span>
+    </div>
+  </div>
+  
+  <!-- Toast Notifications -->
+  <div class="toast-container">
+    <div *ngFor="let toast of toasts" 
+         [@toastAnimation]="toast.visible ? 'visible' : 'hidden'"
+         class="toast-notification" 
+         [ngClass]="'toast-' + toast.type">
+      <div class="toast-icon">
+        <i class="fas" [ngClass]="getToastIconClass(toast.type)"></i>
+      </div>
+      <div class="toast-content">{{ toast.message }}</div>
+      <button class="toast-close" (click)="hideToast(toast.id)">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  </div>
+  
+  <!-- Header with title and main controls -->
+  <div class="header">
+    <div class="header-left">
+      <h1><i class="fas fa-utensils"></i> Orders Management</h1>
+      <div *ngIf="hasPermission(PERM_CHANGE_VIEW_MODE)" class="view-toggle">
+        <button 
+          class="btn view-btn" 
+          [class.active]="viewMode === 'grid'" 
+          (click)="viewMode = 'grid'" 
+          aria-label="Grid View"
+          title="Grid View">
+          <i class="fas fa-th-large"></i>
+        </button>
+        <button 
+          class="btn view-btn" 
+          [class.active]="viewMode === 'list'" 
+          (click)="viewMode = 'list'" 
+          aria-label="List View"
+          title="List View">
+          <i class="fas fa-list"></i>
+        </button>
+      </div>
+    </div>
+    <div *ngIf="hasPermission(PERM_SEARCH_ORDERS)" class="search-container">
+      <input 
+        type="text" 
+        class="search-input" 
+        placeholder="Search by order #, customer, or items" 
+        [(ngModel)]="searchQuery"
+        (input)="onSearchInputChange()"
+        aria-label="Search orders">
+      <button class="btn search-btn" (click)="applySearch()" aria-label="Search">
+        <i class="fas fa-search"></i>
+        <span>Search</span>
+      </button>
+    </div>
+  </div>
+  
+  <!-- Filter and bulk action controls -->
+  <div class="controls-section">
+    <div class="filter-section">
+      <div class="section-title">
+        <i class="fas fa-filter"></i>
+        <h3>Filters</h3>
+      </div>
+  
+      <!-- Status filter -->
+      <div *ngIf="hasPermission(PERM_FILTER_BY_STATUS)" class="filter-group">
+        <label>Status:</label>
+        <div class="dropdown-container">
+          <button class="btn filter-btn" (click)="toggleStatusFilterDropdown($event)" aria-label="Filter by status">
+            <span *ngIf="statusFilters.size === 0">Select status</span>
+            <span *ngIf="statusFilters.size > 0">{{ statusFilters.size }} selected</span>
+            <span class="dropdown-icon">▼</span>
+          </button>
+          <div class="dropdown-menu" [class.show]="showStatusFilterDropdown">
+            <div class="dropdown-item checkbox-item" *ngFor="let status of OrderStatus | keyvalue">
+              <ng-container *ngIf="hasPermissionToFilterStatus(status.value)">
+                <label>
+                  <input type="checkbox" 
+                         [checked]="isStatusFilterActive(status.value)" 
+                         (change)="toggleStatusFilter(status.value)"
+                         [attr.aria-label]="'Filter by ' + status.value">
+                  <span [class]="'status-badge ' + getOrderStatusClass(status.value)">
+                    {{ status.value }}
+                  </span>
+                </label>
+              </ng-container>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- Date range filter -->
+      <div *ngIf="hasPermission(PERM_FILTER_BY_DATE)" class="filter-group">
+        <label>Order Date:</label>
+        <div class="date-range">
+          <div class="date-input-group">
+            <i class="fas fa-calendar-alt"></i>
+            <input type="date" [(ngModel)]="dateRange.start" class="datepicker" aria-label="Start date">
+          </div>
+          <span class="date-separator">to</span>
+          <div class="date-input-group">
+            <i class="fas fa-calendar-alt"></i>
+            <input type="date" [(ngModel)]="dateRange.end" class="datepicker" aria-label="End date">
+          </div>
+          <button class="btn filter-apply-btn" (click)="applyDateFilter()" aria-label="Apply date filter">
+            <i class="fas fa-check"></i>
+            <span>Apply</span>
+          </button>
+        </div>
+      </div>
+  
+      <!-- Clear filters button -->
+      <button class="btn clear-btn" (click)="clearFilters()" aria-label="Clear all filters">
+        <i class="fas fa-times"></i>
+        <span>Clear Filters</span>
+      </button>
+    </div>
+  
+    <!-- Bulk actions -->
+    <div class="bulk-actions" *ngIf="selectedOrders.size > 0 && hasPermission(PERM_BULK_UPDATE)">
+      <div class="selected-count">
+        <i class="fas fa-check-square"></i>
+        <span>{{ selectedOrders.size }} orders selected</span>
+      </div>
+      <div class="bulk-buttons">
+        <button class="btn btn-info" 
+                *ngIf="hasPermissionToUpdateStatus(OrderStatus.CONFIRMED)"
+                (click)="updateSelectedOrdersStatus(OrderStatus.CONFIRMED)"
+                aria-label="Confirm selected orders">
+          <i class="fas fa-check-circle"></i>
+          <span>Confirm Selected</span>
+        </button>
+        <button class="btn btn-primary" 
+                *ngIf="hasPermissionToUpdateStatus(OrderStatus.PREPARING)"
+                (click)="updateSelectedOrdersStatus(OrderStatus.PREPARING)"
+                aria-label="Start preparing selected orders">
+          <i class="fas fa-play-circle"></i>
+          <span>Start Selected</span>
+        </button>
+        <button class="btn btn-success" 
+                *ngIf="hasPermissionToUpdateStatus(OrderStatus.READY_FOR_PICKUP)"
+                (click)="updateSelectedOrdersStatus(OrderStatus.READY_FOR_PICKUP)"
+                aria-label="Mark selected orders as ready">
+          <i class="fas fa-clipboard-check"></i>
+          <span>Mark Ready Selected</span>
+        </button>
+        <button class="btn btn-success" 
+                *ngIf="hasPermissionToUpdateStatus(OrderStatus.COMPLETED)"
+                (click)="updateSelectedOrdersStatus(OrderStatus.COMPLETED)"
+                aria-label="Complete selected orders">
+          <i class="fas fa-flag-checkered"></i>
+          <span>Complete Selected</span>
+        </button>
+        <button class="btn btn-danger" 
+                *ngIf="hasPermissionToUpdateStatus(OrderStatus.CANCELLED)"
+                (click)="updateSelectedOrdersStatus(OrderStatus.CANCELLED)"
+                aria-label="Cancel selected orders">
+          <i class="fas fa-ban"></i>
+          <span>Cancel Selected</span>
+        </button>
+        <button class="btn btn-secondary" (click)="clearAllSelections()" aria-label="Clear selection">
+          <i class="fas fa-times"></i>
+          <span>Clear Selection</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Empty state -->
+  <div class="empty-state" *ngIf="!isLoading && displayedOrders.length === 0">
+    <div class="empty-state-content">
+      <i class="fas fa-utensils empty-icon"></i>
+      <h3>No Orders Found</h3>
+      <p>Try adjusting your filters or search criteria</p>
+      <button class="btn btn-primary" (click)="clearFilters()">Clear All Filters</button>
+    </div>
+  </div>
+  
+  <!-- Grid View for Orders -->
+  <div class="orders-grid" *ngIf="viewMode === 'grid' && displayedOrders.length > 0" [@fadeInOut]>
+    <div class="order-card" 
+         *ngFor="let order of displayedOrders"
+         [class.new-order]="isNewOrder(order.orderId)"
+         [class.selected-card]="isOrderSelected(order.orderId)"
+         [class.priority-high]="getOrderPriorityClass(order) === 'priority-high'"
+         [class.priority-medium]="getOrderPriorityClass(order) === 'priority-medium'"
+         [class.priority-vip]="getOrderPriorityClass(order) === 'priority-vip'"
+         (click)="viewOrderDetails(order)">
+      
+      <div class="card-header">
+        <div class="card-header-left">
+          <div class="checkbox-wrapper" (click)="toggleOrderSelection(order.orderId, $event)">
+            <input type="checkbox" 
+                   [checked]="isOrderSelected(order.orderId)"
+                   [attr.aria-label]="'Select order ' + order.orderNumber">
+            <span class="checkmark"></span>
+          </div>
+          <h3 class="order-number">
+            #{{ order.orderNumber }}
+            <span *ngIf="isNewOrder(order.orderId)" class="new-badge">NEW</span>
+            <span *ngIf="isVipOrder(order)" class="vip-flag">
+              <i class="fas fa-crown"></i> VIP
+            </span>
+          </h3>
+        </div>
+        <span class="status-badge" [ngClass]="getOrderStatusClass(order.status)">
+          {{ order.status }}
+        </span>
+      </div>
+      
+      <div class="card-body">
+        <div *ngIf="hasPermission(PERM_VIEW_CUSTOMER_NAME)" class="customer-info">
+          <i class="fas fa-user"></i>
+          <span>{{ order.customerName }}</span>
+        </div>
+        
+        <div *ngIf="hasPermission(PERM_VIEW_ORDER_ITEMS)" class="order-items">
+          <div *ngIf="hasPermission(PERM_VIEW_ITEM_IMAGES) && order.orderItems && order.orderItems.length > 0" class="order-item-image">
+            <img [src]="getMenuItemImageUrl(order.orderItems[0].menuItemId)" 
+                 [alt]="order.orderItems[0].menuItemName"
+                 (error)="handleImageError($event)"
+                 class="menu-item-thumbnail">
+          </div>
+          
+          <!-- Order Items List with better details -->
+          <div class="order-items-list">
+            <div *ngFor="let item of order.orderItems?.slice(0, 2)" class="order-item">
+              <span class="item-quantity">{{ item.quantity }}×</span>
+              <div class="item-details">
+                <span class="item-name">{{ item.menuItemName }}</span>
+                <span *ngIf="item.price" class="item-price">{{ formatCurrency(item.price) }}</span>
+                <span *ngIf="item.notes && hasPermission(PERM_VIEW_ITEM_NOTES)" class="item-note">
+                  <i class="fas fa-comment-alt"></i> {{ item.notes }}
+                </span>
+              </div>
+            </div>
+            <div *ngIf="order.orderItems && order.orderItems.length > 2" class="more-items">
+              <span class="more-items-count">+{{ order.orderItems.length - 2 }} more items</span>
+              <div class="more-items-tooltip">
+                <div *ngFor="let item of order.orderItems.slice(2)" class="tooltip-item">
+                  {{ item.quantity }}× {{ item.menuItemName }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="order-meta">
+          <div *ngIf="hasPermission(PERM_VIEW_TOTAL)" class="order-amount">
+            <i class="fas fa-dollar-sign"></i>
+            <span>{{ formatCurrency(order.totalAmount) }}</span>
+          </div>
+          <div class="order-time">
+            <i class="fas fa-clock"></i>
+            <span>{{ getRelativeTime(order.createdAt) }}</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card-actions">
+        <button *ngIf="order.status === OrderStatus.PAYMENT_SUCCESSFUL || order.status === OrderStatus.CASHIER_PENDING" 
+                class="btn btn-sm btn-primary"
+                [disabled]="!hasPermissionToUpdateStatus(OrderStatus.CONFIRMED)"
+                (click)="updateOrderStatus(order, OrderStatus.CONFIRMED, $event)"
+                aria-label="Confirm order">
+          <i class="fas fa-check-circle"></i>
+          <span>Confirm</span>
+        </button>
+        <button *ngIf="order.status === OrderStatus.CONFIRMED" 
+                class="btn btn-sm btn-info"
+                [disabled]="!hasPermissionToUpdateStatus(OrderStatus.PREPARING)"
+                (click)="updateOrderStatus(order, OrderStatus.PREPARING, $event)"
+                aria-label="Start preparing order">
+          <i class="fas fa-play-circle"></i>
+          <span>Start</span>
+        </button>
+        <button *ngIf="order.status === OrderStatus.PREPARING" 
+                class="btn btn-sm btn-info"
+                [disabled]="!hasPermissionToUpdateStatus(OrderStatus.READY_FOR_PICKUP)"
+                (click)="updateOrderStatus(order, OrderStatus.READY_FOR_PICKUP, $event)"
+                aria-label="Mark order as ready">
+          <i class="fas fa-clipboard-check"></i>
+          <span>Ready</span>
+        </button>
+        <button *ngIf="order.status === OrderStatus.READY_FOR_PICKUP" 
+                class="btn btn-sm btn-success"
+                [disabled]="!hasPermissionToUpdateStatus(OrderStatus.COMPLETED)"
+                (click)="updateOrderStatus(order, OrderStatus.COMPLETED, $event)"
+                aria-label="Complete order">
+          <i class="fas fa-flag-checkered"></i>
+          <span>Complete</span>
+        </button>
+        <button *ngIf="order.status !== OrderStatus.CANCELLED && order.status !== OrderStatus.COMPLETED" 
+                class="btn btn-sm btn-danger"
+                [disabled]="!hasPermissionToUpdateStatus(OrderStatus.CANCELLED)"
+                (click)="updateOrderStatus(order, OrderStatus.CANCELLED, $event)"
+                aria-label="Cancel order">
+          <i class="fas fa-ban"></i>
+          <span>Cancel</span>
+        </button>
+        <button class="btn btn-sm btn-view"
+                [disabled]="!hasPermission(PERM_VIEW_SINGLE_ORDER)"
+                (click)="viewOrderDetails(order, $event)"
+                aria-label="View order details">
+          <i class="fas fa-eye"></i>
+          <span>View</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- List View for Orders -->
+  <div class="orders-list" *ngIf="viewMode === 'list' && displayedOrders.length > 0" [@fadeInOut]>
+    <div class="table-responsive">
+      <table class="table" aria-label="Orders list">
+        <thead>
+          <tr>
+            <th class="checkbox-cell">
+              <div class="checkbox-wrapper">
+                <input type="checkbox" 
+                       [checked]="areAllDisplayedOrdersSelected()" 
+                       (change)="selectAllDisplayedOrders()"
+                       aria-label="Select all orders">
+                <span class="checkmark"></span>
+              </div>
+            </th>
+            <th class="sortable" (click)="setSorting('orderNumber')" scope="col" [attr.aria-sort]="sortBy === 'orderNumber' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'">
+              Order # {{ getSortIndicator('orderNumber') }}
+            </th>
+            <th *ngIf="hasPermission(PERM_VIEW_CUSTOMER_NAME)" scope="col">Customer</th>
+            <th *ngIf="hasPermission(PERM_VIEW_ORDER_ITEMS)" scope="col">Items</th>
+            <th *ngIf="hasPermission(PERM_VIEW_TOTAL)" class="sortable" (click)="setSorting('totalAmount')" scope="col" [attr.aria-sort]="sortBy === 'totalAmount' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'">
+              Total {{ getSortIndicator('totalAmount') }}
+            </th>
+            <th scope="col">Status</th>
+            <th class="sortable" (click)="setSorting('orderDate')" scope="col" [attr.aria-sort]="sortBy === 'orderDate' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'">
+              Date {{ getSortIndicator('orderDate') }}
+            </th>
+            <th scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let order of displayedOrders" 
+              [class.new-order]="isNewOrder(order.orderId)"
+              [class.selected-row]="isOrderSelected(order.orderId)"
+              [class.priority-high]="getOrderPriorityClass(order) === 'priority-high'"
+              [class.priority-medium]="getOrderPriorityClass(order) === 'priority-medium'"
+              [class.priority-vip]="getOrderPriorityClass(order) === 'priority-vip'"
+              [class.vip-row]="isVipOrder(order)"
+              (click)="viewOrderDetails(order)">
+            <td class="checkbox-cell" (click)="toggleOrderSelection(order.orderId, $event)">
+              <div class="checkbox-wrapper">
+                <input type="checkbox" 
+                       [checked]="isOrderSelected(order.orderId)"
+                       [attr.aria-label]="'Select order ' + order.orderNumber">
+                <span class="checkmark"></span>
+              </div>
+            </td>
+            <td>
+              <span class="order-number">#{{ order.orderNumber }}</span>
+              <span *ngIf="isNewOrder(order.orderId)" class="new-badge">NEW</span>
+              <span *ngIf="isVipOrder(order)" class="vip-flag">
+                <i class="fas fa-crown"></i> VIP
+              </span>
+            </td>
+            <td *ngIf="hasPermission(PERM_VIEW_CUSTOMER_NAME)">
+              <div class="customer-info">
+                <i class="fas fa-user"></i>
+                <span>{{ order.customerName }}</span>
+              </div>
+            </td>
+            <td *ngIf="hasPermission(PERM_VIEW_ORDER_ITEMS)">
+              <div class="order-items-preview">
+                <div *ngIf="hasPermission(PERM_VIEW_ITEM_IMAGES) && order.orderItems && order.orderItems.length > 0" class="order-item-image-small">
+                  <img [src]="getMenuItemImageUrl(order.orderItems[0].menuItemId)" 
+                       [alt]="order.orderItems[0].menuItemName"
+                       (error)="handleImageError($event)"
+                       class="menu-item-thumbnail-small">
+                </div>
+                <div class="items-list-container">
+                  <div *ngIf="order.orderItems && order.orderItems.length > 0" class="item-preview">
+                    <span class="item-quantity">{{ order.orderItems[0].quantity }}×</span>
+                    <span class="item-name">{{ order.orderItems[0].menuItemName }}</span>
+                  </div>
+                  <div *ngIf="order.orderItems && order.orderItems.length > 1" class="item-preview item-preview-secondary">
+                    <span class="item-quantity-secondary">{{ order.orderItems[1].quantity }}×</span>
+                    <span class="item-name-secondary">{{ order.orderItems[1].menuItemName }}</span>
+                  </div>
+                  <div *ngIf="order.orderItems && order.orderItems.length > 2" class="more-items-list">
+                    <span>+{{ order.orderItems.length - 2 }} more</span>
+                    
+                    <!-- Hover Tooltip with all items -->
+                    <div class="items-tooltip">
+                      <div class="tooltip-header">All {{ order.orderItems.length }} items:</div>
+                      <div *ngFor="let item of order.orderItems" class="tooltip-item">
+                        <span class="tooltip-quantity">{{ item.quantity }}×</span>
+                        <span class="tooltip-name">{{ item.menuItemName }}</span>
+                        <span *ngIf="item.price" class="tooltip-price">{{ formatCurrency(item.price) }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td *ngIf="hasPermission(PERM_VIEW_TOTAL)">{{ formatCurrency(order.totalAmount) }}</td>
+            <td>
+              <span class="status-badge" [ngClass]="getOrderStatusClass(order.status)">
+                {{ order.status }}
+              </span>
+            </td>
+            <td>
+              <div class="date-info">
+                <span class="date">{{ parseDate(order.createdAt) | date:'short' }}</span>
+                <span class="relative-time">{{ getRelativeTime(order.createdAt) }}</span>
+              </div>
+            </td>
+            <td>
+              <div class="action-buttons">
+                <button *ngIf="order.status === OrderStatus.PAYMENT_SUCCESSFUL || order.status === OrderStatus.CASHIER_PENDING" 
+                        class="btn btn-sm btn-primary"
+                        [disabled]="!hasPermissionToUpdateStatus(OrderStatus.CONFIRMED)"
+                        (click)="updateOrderStatus(order, OrderStatus.CONFIRMED, $event)"
+                        aria-label="Confirm order">
+                  <i class="fas fa-check-circle"></i>
+                  <span class="btn-text">Confirm</span>
+                </button>
+                <button *ngIf="order.status === OrderStatus.CONFIRMED" 
+                        class="btn btn-sm btn-info"
+                        [disabled]="!hasPermissionToUpdateStatus(OrderStatus.PREPARING)"
+                        (click)="updateOrderStatus(order, OrderStatus.PREPARING, $event)"
+                        aria-label="Start preparing order">
+                  <i class="fas fa-play-circle"></i>
+                  <span class="btn-text">Start</span>
+                </button>
+                <button *ngIf="order.status === OrderStatus.PREPARING" 
+                        class="btn btn-sm btn-info"
+                        [disabled]="!hasPermissionToUpdateStatus(OrderStatus.READY_FOR_PICKUP)"
+                        (click)="updateOrderStatus(order, OrderStatus.READY_FOR_PICKUP, $event)"
+                        aria-label="Mark order as ready">
+                  <i class="fas fa-clipboard-check"></i>
+                  <span class="btn-text">Ready</span>
+                </button>
+                <button *ngIf="order.status === OrderStatus.READY_FOR_PICKUP" 
+                        class="btn btn-sm btn-success"
+                        [disabled]="!hasPermissionToUpdateStatus(OrderStatus.COMPLETED)"
+                        (click)="updateOrderStatus(order, OrderStatus.COMPLETED, $event)"
+                        aria-label="Complete order">
+                  <i class="fas fa-flag-checkered"></i>
+                  <span class="btn-text">Complete</span>
+                </button>
+                <button *ngIf="order.status !== OrderStatus.CANCELLED && order.status !== OrderStatus.COMPLETED" 
+                        class="btn btn-sm btn-danger"
+                        [disabled]="!hasPermissionToUpdateStatus(OrderStatus.CANCELLED)"
+                        (click)="updateOrderStatus(order, OrderStatus.CANCELLED, $event)"
+                        aria-label="Cancel order">
+                  <i class="fas fa-ban"></i>
+                  <span class="btn-text">Cancel</span>
+                </button>
+                <button class="btn btn-sm btn-view"
+                        [disabled]="!hasPermission(PERM_VIEW_SINGLE_ORDER)"
+                        (click)="viewOrderDetails(order, $event)"
+                        aria-label="View order details">
+                  <i class="fas fa-eye"></i>
+                  <span class="btn-text">View</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+  <!-- Pagination controls -->
+  <div class="pagination-controls" *ngIf="filteredOrders.length > 0">
+    <div class="items-per-page">
+      <span>Show</span>
+      <select [(ngModel)]="itemsPerPage" 
+              (change)="changeItemsPerPage()" 
+              class="page-select"
+              aria-label="Items per page">
+        <option *ngFor="let option of pageSizeOptions" [value]="option">{{ option }}</option>
+      </select>
+      <span>items per page</span>
+    </div>
+    
+    <div class="pagination" role="navigation" aria-label="Pagination">
+      <button class="pagination-btn" 
+              [disabled]="currentPage === 1"
+              (click)="goToPage(currentPage - 1)"
+              aria-label="Previous page">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      
+      <ng-container *ngFor="let page of getPaginationArray()">
+        <span *ngIf="page < 0" class="ellipsis" aria-hidden="true">...</span>
+        <button *ngIf="page > 0" 
+                class="pagination-btn" 
+                [class.active]="currentPage === page"
+                (click)="goToPage(page)"
+                [attr.aria-current]="currentPage === page ? 'page' : null"
+                [attr.aria-label]="'Page ' + page">
+          {{ page }}
+        </button>
+      </ng-container>
+      
+      <button class="pagination-btn" 
+              [disabled]="currentPage === totalPages || totalPages === 0"
+              (click)="goToPage(currentPage + 1)"
+              aria-label="Next page">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    </div>
+    
+    <div class="page-info">
+      Showing {{ filteredOrders.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0 }} to 
+      {{ getMinValue(currentPage * itemsPerPage, filteredOrders.length) }} of 
+      {{ filteredOrders.length }} orders
+    </div>
+  </div>
+  
+  <!-- Order details modal -->
+  <div class="modal" [class.show]="orderDetails !== null" role="dialog" aria-modal="true" aria-labelledby="order-details-title">
+    <div class="modal-backdrop" (click)="closeOrderDetails()"></div>
+    <div class="modal-content" *ngIf="orderDetails" tabindex="-1">
+      <div class="modal-header">
+        <div class="modal-title">
+          <h2 id="order-details-title">
+            Order #{{ orderDetails.orderNumber }}
+            <span *ngIf="isVipOrder(orderDetails)" class="vip-flag">
+              <i class="fas fa-crown"></i> VIP
+            </span>
+          </h2>
+          <span class="status-badge" [ngClass]="getOrderStatusClass(orderDetails.status)">
+            {{ orderDetails.status }}
+          </span>
+        </div>
+        <button class="close-btn" (click)="closeOrderDetails()" aria-label="Close">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="order-info-grid">
+          <div *ngIf="hasPermission(PERM_VIEW_CUSTOMER_NAME) || 
+                      hasPermission(PERM_VIEW_CUSTOMER_PHONE) || 
+                      hasPermission(PERM_VIEW_CUSTOMER_EMAIL)" 
+              class="order-info-section customer-section">
+            <div class="section-header">
+              <i class="fas fa-user-circle"></i>
+              <h3>Customer Information</h3>
+            </div>
+            <div *ngIf="hasPermission(PERM_VIEW_CUSTOMER_NAME)" class="info-row">
+              <span class="info-label">Name:</span>
+              <span class="info-value">{{ orderDetails.customerName }}</span>
+            </div>
+            <div *ngIf="hasPermission(PERM_VIEW_CUSTOMER_PHONE)" class="info-row">
+              <span class="info-label">Phone:</span>
+              <span class="info-value">{{ orderDetails.customerPhone }}</span>
+            </div>
+            <div *ngIf="hasPermission(PERM_VIEW_CUSTOMER_EMAIL)" class="info-row">
+              <span class="info-label">Email:</span>
+              <span class="info-value">{{ orderDetails.customerEmail }}</span>
+            </div>
+          </div>
+          
+          <div class="order-info-section order-section">
+            <div class="section-header">
+              <i class="fas fa-shopping-cart"></i>
+              <h3>Order Information</h3>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Order Date:</span>
+              <span class="info-value">{{ parseDate(orderDetails.createdAt) | date:'medium' }}</span>
+            </div>
+            <div *ngIf="hasPermission(PERM_VIEW_PAYMENT_METHOD)" class="info-row">
+              <span class="info-label">Payment Method:</span>
+              <span class="info-value">{{ orderDetails.paymentMethod || 'N/A' }}</span>
+            </div>
+            <div *ngIf="orderDetails.specialInstructions" class="info-row">
+              <span class="info-label">Special Instructions:</span>
+              <span class="info-value instructions">{{ orderDetails.specialInstructions }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div *ngIf="hasPermission(PERM_VIEW_ORDER_ITEMS)" class="order-items-section">
+          <div class="section-header">
+            <i class="fas fa-utensils"></i>
+            <h3>Order Items</h3>
+          </div>
+          <div class="table-responsive">
+            <table class="order-items-table" aria-label="Order items">
+              <thead>
+                <tr>
+                  <th scope="col">Item</th>
+                  <th scope="col">Quantity</th>
+                  <th scope="col">Unit Price</th>
+                  <th scope="col">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of orderDetails.orderItems">
+                  <td>
+                    <div class="item-details">
+                      <div *ngIf="hasPermission(PERM_VIEW_ITEM_IMAGES)" class="item-image">
+                        <img [src]="getMenuItemImageUrl(item.menuItemId)" 
+                            [alt]="item.menuItemName"
+                            (error)="handleImageError($event)"
+                            class="menu-item-thumbnail">
+                      </div>
+                      <div class="item-text">
+                        <div class="item-name">{{ item.menuItemName }}</div>
+                        <div *ngIf="hasPermission(PERM_VIEW_ITEM_NOTES) && item.notes" class="item-notes">
+                          <i class="fas fa-comment-alt"></i>
+                          <span>{{ item.notes }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>{{ item.quantity }}</td>
+                  <td>{{ formatCurrency(item.price) }}</td>
+                  <td>{{ formatCurrency(item.quantity * item.price) }}</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr *ngIf="hasPermission(PERM_VIEW_SUBTOTAL)" class="summary-row">
+                  <td colspan="3" class="text-right"><strong>Subtotal</strong></td>
+                  <td>{{ formatCurrency(orderDetails.subtotal ?? orderDetails.totalAmount) }}</td>
+                </tr>
+                <tr *ngIf="hasPermission(PERM_VIEW_TAX) && orderDetails.taxAmount" class="summary-row">
+                  <td colspan="3" class="text-right"><strong>Tax</strong></td>
+                  <td>{{ formatCurrency(orderDetails.taxAmount) }}</td>
+                </tr>
+                <tr *ngIf="orderDetails.deliveryFee" class="summary-row">
+                  <td colspan="3" class="text-right"><strong>Delivery Fee</strong></td>
+                  <td>{{ formatCurrency(orderDetails.deliveryFee) }}</td>
+                </tr>
+                <tr *ngIf="hasPermission(PERM_VIEW_DISCOUNT) && orderDetails.discount" class="summary-row discount">
+                  <td colspan="3" class="text-right"><strong>Discount</strong></td>
+                  <td>-{{ formatCurrency(orderDetails.discount) }}</td>
+                </tr>
+                <tr *ngIf="hasPermission(PERM_VIEW_TOTAL)" class="total-row">
+                  <td colspan="3" class="text-right"><strong>Total</strong></td>
+                  <td>{{ formatCurrency(orderDetails.totalAmount) }}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+        
+        <div class="order-history-section" *ngIf="orderDetails.statusHistory && orderDetails.statusHistory.length > 0">
+          <div class="section-header">
+            <i class="fas fa-history"></i>
+            <h3>Order History</h3>
+          </div>
+          <div class="timeline">
+            <div class="timeline-item" *ngFor="let history of orderDetails.statusHistory">
+              <div class="timeline-marker" [ngClass]="getOrderStatusClass(history.status)"></div>
+              <div class="timeline-content">
+                <h4>{{ history.status }}</h4>
+                <p class="timeline-date">{{ parseDate(history.timestamp) | date:'medium' }}</p>
+                <p *ngIf="history.note" class="timeline-note">{{ history.note }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="order-actions">
+          <button *ngIf="orderDetails.status === OrderStatus.PAYMENT_SUCCESSFUL || orderDetails.status === OrderStatus.CASHIER_PENDING" 
+                  class="btn btn-primary"
+                  [disabled]="!hasPermissionToUpdateStatus(OrderStatus.CONFIRMED)"
+                  (click)="updateOrderStatus(orderDetails, OrderStatus.CONFIRMED)"
+                  aria-label="Confirm order">
+            <i class="fas fa-check-circle"></i>
+            <span>Confirm Order</span>
+          </button>
+          <button *ngIf="orderDetails.status === OrderStatus.CONFIRMED" 
+                  class="btn btn-info"
+                  [disabled]="!hasPermissionToUpdateStatus(OrderStatus.PREPARING)"
+                  (click)="updateOrderStatus(orderDetails, OrderStatus.PREPARING)"
+                  aria-label="Start preparing order">
+            <i class="fas fa-play-circle"></i>
+            <span>Start Preparing</span>
+          </button>
+          <button *ngIf="orderDetails.status === OrderStatus.PREPARING" 
+                  class="btn btn-info"
+                  [disabled]="!hasPermissionToUpdateStatus(OrderStatus.READY_FOR_PICKUP)"
+                  (click)="updateOrderStatus(orderDetails, OrderStatus.READY_FOR_PICKUP)"
+                  aria-label="Mark order as ready for pickup">
+            <i class="fas fa-clipboard-check"></i>
+            <span>Mark Ready for Pickup</span>
+          </button>
+          <button *ngIf="orderDetails.status === OrderStatus.READY_FOR_PICKUP" 
+                  class="btn btn-success"
+                  [disabled]="!hasPermissionToUpdateStatus(OrderStatus.COMPLETED)"
+                  (click)="updateOrderStatus(orderDetails, OrderStatus.COMPLETED)"
+                  aria-label="Complete order">
+            <i class="fas fa-flag-checkered"></i>
+            <span>Complete Order</span>
+          </button>
+          <button *ngIf="orderDetails.status !== OrderStatus.CANCELLED && orderDetails.status !== OrderStatus.COMPLETED" 
+                  class="btn btn-danger"
+                  [disabled]="!hasPermissionToUpdateStatus(OrderStatus.CANCELLED)"
+                  (click)="updateOrderStatus(orderDetails, OrderStatus.CANCELLED)"
+                  aria-label="Cancel order">
+            <i class="fas fa-ban"></i>
+            <span>Cancel Order</span>
+          </button>
+          <button class="btn btn-secondary" (click)="closeOrderDetails()" aria-label="Close dialog">
+            <i class="fas fa-times"></i>
+            <span>Close</span>
+          </button>
+          <button *ngIf="orderDetails.orderItems && orderDetails.orderItems.length > 0" 
+                  class="btn btn-gold"
+                  aria-label="Print receipt">
+            <i class="fas fa-print"></i>
+            <span>Print Receipt</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

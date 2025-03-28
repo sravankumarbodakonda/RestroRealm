@@ -1,0 +1,260 @@
+<div class="checkout-container">
+  <h2>Checkout</h2>
+  
+  <form (ngSubmit)="submitOrder()">
+    <!-- Order Type Selection -->
+    <div class="form-group">
+      <label>Order Type</label>
+      <div class="order-type-options">
+        <label class="radio-option">
+          <input type="radio" [(ngModel)]="orderDetails.orderType" name="orderType" value="delivery">
+          Delivery
+        </label>
+        <label class="radio-option">
+          <input type="radio" [(ngModel)]="orderDetails.orderType" name="orderType" value="pickup">
+          Pickup
+        </label>
+        <label class="radio-option">
+          <input type="radio" [(ngModel)]="orderDetails.orderType" name="orderType" value="dine-in">
+          Dine-in
+        </label>
+      </div>
+    </div>
+
+    <!-- Order For Section (non-admin only) -->
+    <div class="form-group" *ngIf="!isAdmin">
+      <label>Order For</label>
+      <div class="order-for-options">
+        <label class="radio-option">
+          <input type="radio" [(ngModel)]="orderDetails.orderFor" name="orderFor" value="self" (change)="updateOrderForSelection()">
+          Myself
+        </label>
+        <label class="radio-option">
+          <input type="radio" [(ngModel)]="orderDetails.orderFor" name="orderFor" value="friend" (change)="updateOrderForSelection()">
+          Friend
+        </label>
+      </div>
+    </div>
+
+    <!-- Admin Order Selection -->
+    <div class="form-group" *ngIf="isAdmin">
+      <label>Create Order For</label>
+      <div class="admin-order-options">
+        <label class="radio-option">
+          <input type="radio" [(ngModel)]="adminOrderFor" name="adminOrderFor" value="self" (change)="updateAdminOrderSelection()">
+          Self
+        </label>
+        <label class="radio-option">
+          <input type="radio" [(ngModel)]="adminOrderFor" name="adminOrderFor" value="customer" (change)="updateAdminOrderSelection()">
+          Customer
+        </label>
+      </div>
+    </div>
+
+    <!-- Customer Selection for Admin -->
+    <div class="form-group" *ngIf="isAdmin && adminOrderFor === 'customer'">
+      <label>Select Customer</label>
+      <div class="customer-selection">
+        <select [(ngModel)]="selectedCustomerId" name="customerId" (change)="loadCustomerInfo()">
+          <option [ngValue]="null">Select a customer</option>
+          <option *ngFor="let customer of customersList" [ngValue]="customer.id">{{customer.name}}</option>
+        </select>
+        <button type="button" class="secondary-button" (click)="showNewCustomerForm = true" *ngIf="!showNewCustomerForm">
+          New Customer
+        </button>
+      </div>
+    </div>
+
+    <!-- New Customer Form for Admin -->
+    <div *ngIf="isAdmin && adminOrderFor === 'customer' && showNewCustomerForm">
+      <h3>New Customer</h3>
+      <div class="form-group">
+        <label>Customer Name</label>
+        <input type="text" [(ngModel)]="newCustomer.name" name="newCustomerName" required>
+      </div>
+      <div class="form-group">
+        <label>Phone</label>
+        <input type="tel" [(ngModel)]="newCustomer.phone" name="newCustomerPhone" required>
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" [(ngModel)]="newCustomer.email" name="newCustomerEmail" required>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="secondary-button" (click)="saveNewCustomer()">Save Customer</button>
+        <button type="button" class="text-button" (click)="showNewCustomerForm = false">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Table Selection for Admin (Customer Orders) -->
+    <div class="form-group" *ngIf="isAdmin && adminOrderFor === 'customer' && !showNewCustomerForm && selectedCustomerId">
+      <label>Table Number</label>
+      <select [(ngModel)]="orderDetails.tableId" name="tableId">
+        <option [ngValue]="null">Select a table</option>
+        <option *ngFor="let table of availableTables" [ngValue]="table.id">{{table.tableNumber}}</option>
+      </select>
+    </div>
+
+    <!-- Personal Information -->
+    <div class="form-section">
+      <h3>Customer Information</h3>
+      
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" [(ngModel)]="shippingInfo.customerName" name="name" required [disabled]="isPersonalInfoDisabled()">
+      </div>
+
+      <div class="form-group">
+        <label>Phone</label>
+        <input type="tel" [(ngModel)]="shippingInfo.phone" name="phone" required [disabled]="isPersonalInfoDisabled()">
+      </div>
+
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" [(ngModel)]="shippingInfo.email" name="email" required [disabled]="isPersonalInfoDisabled()">
+      </div>
+    </div>
+
+    <!-- Delivery Address (show only for delivery orders) -->
+    <div class="form-section" *ngIf="orderDetails.orderType === 'delivery'">
+      <h3>Delivery Address</h3>
+      
+      <div class="form-group">
+        <label>Street 1</label>
+        <input type="text" [(ngModel)]="shippingInfo.street1" name="street1" required>
+      </div>
+    
+      <div class="form-group">
+        <label>Street 2</label>
+        <input type="text" [(ngModel)]="shippingInfo.street2" name="street2">
+      </div>
+    
+      <div class="form-group">
+        <label>City</label>
+        <input type="text" [(ngModel)]="shippingInfo.city" name="city" required>
+      </div>
+    
+      <div class="form-group">
+        <label>State</label>
+        <input type="text" [(ngModel)]="shippingInfo.state" name="state" required>
+      </div>
+    
+      <div class="form-group">
+        <label>Postal Code</label>
+        <input type="number" [(ngModel)]="shippingInfo.postalCode" name="postalCode" required>
+      </div>
+    </div>
+
+    <!-- Pickup Details (show only for pickup orders) -->
+    <div class="form-section" *ngIf="orderDetails.orderType === 'pickup'">
+      <h3>Pickup Details</h3>
+      
+      <div class="form-group">
+        <label>Pickup Time</label>
+        <select [(ngModel)]="orderDetails.pickupTime" name="pickupTime" required>
+          <option value="asap">As Soon As Possible</option>
+          <option value="15min">15 Minutes</option>
+          <option value="30min">30 Minutes</option>
+          <option value="1hour">1 Hour</option>
+          <option value="custom">Specific Time</option>
+        </select>
+      </div>
+      
+      <div class="form-group" *ngIf="orderDetails.pickupTime === 'custom'">
+        <label>Select Time</label>
+        <input type="datetime-local" [(ngModel)]="orderDetails.customPickupTime" name="customPickupTime" min="{{minPickupTime}}" max="{{maxPickupTime}}">
+      </div>
+    </div>
+    
+    <!-- Dine-in Reservation Details -->
+    <div class="form-section" *ngIf="orderDetails.orderType === 'dine-in'">
+      <h3>Reservation Details</h3>
+      
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" [(ngModel)]="orderDetails.reservationDate" name="reservationDate" required min="{{minReservationDate}}">
+      </div>
+      
+      <div class="form-group">
+        <label>Time</label>
+        <input type="time" [(ngModel)]="orderDetails.reservationTime" name="reservationTime" required>
+      </div>
+      
+      <div class="form-group">
+        <label>Number of Guests</label>
+        <select [(ngModel)]="orderDetails.numberOfGuests" name="numberOfGuests" required>
+          <option [ngValue]="1">1 person</option>
+          <option [ngValue]="2">2 people</option>
+          <option [ngValue]="3">3 people</option>
+          <option [ngValue]="4">4 people</option>
+          <option [ngValue]="5">5 people</option>
+          <option [ngValue]="6">6 people</option>
+          <option [ngValue]="7">7 people</option>
+          <option [ngValue]="8">8 people</option>
+          <option [ngValue]="null">More than 8 (Please call)</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label>Special Requests</label>
+        <textarea [(ngModel)]="orderDetails.specialRequests" name="specialRequests" rows="2" placeholder="High chair, birthday celebration, etc."></textarea>
+      </div>
+      
+      <button type="button" class="check-availability-btn" 
+              [disabled]="!orderDetails.reservationDate || !orderDetails.reservationTime || !orderDetails.numberOfGuests"
+              (click)="checkTableAvailability()">
+        Check Availability
+      </button>
+      
+      <div class="table-availability" *ngIf="reservationAvailable !== null">
+        <div class="availability-message success" *ngIf="reservationAvailable">
+          <i class="icon-check"></i> Tables available at this time!
+        </div>
+        <div class="availability-message error" *ngIf="!reservationAvailable">
+          <i class="icon-alert"></i> No tables available at this time.
+          <div class="alternative-times" *ngIf="alternativeTimes?.length">
+            <p>Available times nearby:</p>
+            <div class="time-options">
+              <button type="button" *ngFor="let time of alternativeTimes" 
+                      (click)="selectAlternativeTime(time)" class="time-option-btn">
+                {{formatTime(time)}}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment Method -->
+    <div class="form-section">
+      <h3>Payment</h3>
+      
+      <div class="form-group">
+        <label>Payment Method</label>
+        <select [(ngModel)]="shippingInfo.paymentMethod" name="paymentMethod" required>
+          <option value="credit">Credit Card</option>
+          <option value="debit">Debit Card</option>
+          <option value="paypal">PayPal</option>
+          <option value="cash">Cash at Counter</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Order Notes -->
+    <div class="form-group">
+      <label>Order Notes</label>
+      <textarea [(ngModel)]="orderDetails.notes" name="notes" rows="2"></textarea>
+    </div>
+
+    <!-- Error Message -->
+    <div class="error-message" *ngIf="errorMessage">
+      {{errorMessage}}
+    </div>
+
+    <!-- Submit Button -->
+    <button type="submit" class="submit-order" [disabled]="isSubmitting">
+      <span *ngIf="!isSubmitting">Place Order</span>
+      <span *ngIf="isSubmitting">Processing...</span>
+    </button>
+  </form>
+</div>
