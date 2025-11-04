@@ -7,7 +7,7 @@ To set up the project on a new device, follow these steps:
 1. **Clone the Repository**  
    Run the following command to clone the repo:  
    ```bash
-   git clone https://github.com/saigirishpabbathi/RestroRealm.git
+   git clone https://github.com/sravankumarbodakonda/RestroRealm.git
    ```
 
 2. **Create a Database**  
