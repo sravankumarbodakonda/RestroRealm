@@ -3,11 +3,12 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
-    "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test",
-    "serve:ssr:restrorealm": "node dist/restrorealm/server/server.mjs"
+    "serve:ssr:restrorealm": "node dist/restrorealm/server/server.mjs",
+    "start": "react-scripts start",
+  "build": "react-scripts build",
+  "test": "react-scripts test",
+  "eject": "react-scripts eject"
   },
   "private": true,
   "dependencies": {
