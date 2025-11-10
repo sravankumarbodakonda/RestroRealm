@@ -30,6 +30,7 @@ import { ContactUsComponent } from './pages/contact-us/contact-us.component';
 import { MenuCustomizationComponent } from './features/menu-customization/menu-customization.component';
 
 export const routes: Routes = [
+    { path: '', redirectTo: '/login', pathMatch: 'full' }, // default redirect
     { path :'home', component: HomeComponent },
     { path: 'categories', component: CategoryPageComponent },
     { path: 'menu', component: MenuPageComponent },
@@ -58,6 +59,5 @@ export const routes: Routes = [
     { path: 'all-reservations', component: AllReservationsComponent, canActivate: [AuthGuard]  },
     { path: 'orders', component: AllOrdersComponent, canActivate: [AuthGuard]  },
     { path: 'my-reservations', component: MyReservationsComponent, canActivate: [AuthGuard]  },
-    //{ path: '', redirectTo: '/home', pathMatch: 'full' },
     { path: '**', redirectTo: '/home' }
 ];
